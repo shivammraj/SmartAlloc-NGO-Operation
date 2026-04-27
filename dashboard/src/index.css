@@ -1,0 +1,49 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; }
+  html { color-scheme: dark; }
+  body { @apply bg-[#0f1117] text-gray-100 font-sans antialiased; }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { @apply bg-transparent; }
+  ::-webkit-scrollbar-thumb { @apply bg-gray-700 rounded-full; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-gray-500; }
+}
+
+@layer components {
+  .card { @apply bg-[#161b27] border border-[#232b3e] rounded-xl; }
+  .btn-primary { @apply px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors focus-visible:ring-2 focus-visible:ring-blue-400 outline-none disabled:opacity-40 disabled:cursor-not-allowed; }
+  .btn-ghost   { @apply px-4 py-2 bg-transparent hover:bg-white/5 text-gray-300 text-sm font-medium rounded-lg transition-colors outline-none; }
+  .badge       { @apply inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full; }
+  .input       { @apply bg-[#1c2333] border border-[#232b3e] rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors; }
+}
+
+/* Tier colour utilities */
+.tier-critical { @apply border-red-500 text-red-300 bg-red-500/10; }
+.tier-high     { @apply border-orange-500 text-orange-300 bg-orange-500/10; }
+.tier-medium   { @apply border-yellow-500 text-yellow-300 bg-yellow-500/10; }
+.tier-low      { @apply border-blue-500 text-blue-300 bg-blue-500/10; }
+
+/* Animated gradient skeleton */
+.skeleton {
+  background: linear-gradient(90deg, #1c2333 25%, #232b3e 50%, #1c2333 75%);
+  background-size: 400% 100%;
+  animation: shimmer 1.5s ease infinite;
+}
+@keyframes shimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+
+/* Pulse dot for live indicator */
+.live-dot::before {
+  content: '';
+  @apply absolute inset-0 rounded-full bg-green-500 opacity-75;
+  animation: ping 1.5s cubic-bezier(0,0,0.2,1) infinite;
+}
+@keyframes ping { 75%,100% { transform: scale(2.5); opacity: 0; } }
+
+/* Map placeholder gradient */
+.map-placeholder {
+  background: radial-gradient(ellipse at 50% 60%, #1a2744 0%, #0f1117 70%);
+}

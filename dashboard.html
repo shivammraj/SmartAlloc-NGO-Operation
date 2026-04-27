@@ -1,0 +1,1619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SmartAlloc — NGO Operations Platform</title>
+<meta name="description" content="Smart Resource Allocation: Data-driven volunteer coordination for NGOs"/>
+<!-- Google Maps -->
+<script async defer src="https://maps.googleapis.com/maps/api/js?v=weekly&callback=initMap"></script>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg0:#07090f;--bg1:#0d1117;--bg2:#141a24;--bg3:#1b2333;--bg4:#222d3f;
+  --border:#1e2d47;--text:#e8edf5;--muted:#7a8aaa;--dim:#4a5a7a;
+  --blue:#3b82f6;--blue-d:#1d4ed8;--blue-l:#60a5fa;
+  --red:#ef4444;--orange:#f97316;--yellow:#eab308;--green:#22c55e;
+  --purple:#a855f7;--pink:#ec4899;--teal:#14b8a6;
+  --crit:#ef4444;--high:#f97316;--med:#eab308;--low:#3b82f6;
+}
+html,body{height:100%;overflow:hidden;color-scheme:dark;font-family:'Inter',sans-serif}
+body{background:var(--bg0);color:var(--text);display:flex;height:100vh}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:99px}
+::-webkit-scrollbar-thumb:hover{background:var(--dim)}
+
+/* ── SIDEBAR ─────────────────────────────────── */
+#sidebar{width:228px;min-width:228px;background:var(--bg1);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100vh;z-index:10}
+.sb-logo{padding:16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.sb-icon{width:34px;height:34px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.sb-name{font-size:13px;font-weight:800;background:linear-gradient(90deg,#60a5fa,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sb-sub{font-size:9px;color:var(--muted);margin-top:1px}
+.ngo-pill{margin:10px;background:linear-gradient(135deg,rgba(59,130,246,.08),rgba(139,92,246,.08));border:1px solid rgba(59,130,246,.15);border-radius:10px;padding:10px 12px}
+.ngo-name{font-size:11px;font-weight:700}
+.ngo-loc{font-size:10px;color:var(--muted);margin-top:1px}
+.live-row{display:flex;align-items:center;gap:6px;margin-top:6px}
+.live-dot{position:relative;width:8px;height:8px;flex-shrink:0}
+.live-dot::before{content:'';position:absolute;inset:0;border-radius:50%;background:var(--green);animation:ping 1.5s ease-in-out infinite;opacity:.7}
+.live-dot::after{content:'';position:absolute;inset:1px;border-radius:50%;background:var(--green)}
+@keyframes ping{0%{transform:scale(1);opacity:.7}70%,100%{transform:scale(2.3);opacity:0}}
+.live-txt{font-size:10px;color:var(--green)}
+.live-time{font-size:10px;color:var(--dim);margin-left:auto}
+nav{flex:1;padding:8px;overflow-y:auto}
+.ni{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:9px;cursor:pointer;font-size:12.5px;font-weight:500;color:var(--muted);transition:all .15s;border:1px solid transparent;margin-bottom:2px;user-select:none}
+.ni:hover{background:rgba(255,255,255,.04);color:var(--text)}
+.ni.active{background:linear-gradient(90deg,rgba(59,130,246,.15),rgba(139,92,246,.08));color:var(--blue-l);border-color:rgba(59,130,246,.2)}
+.ni-ico{font-size:14px;width:18px;text-align:center;flex-shrink:0}
+.ni-badge{margin-left:auto;font-size:9px;font-weight:700;padding:1px 6px;border-radius:99px;background:rgba(239,68,68,.2);color:#fca5a5}
+.sb-footer{padding:10px;border-top:1px solid var(--border)}
+.admin-row{display:flex;align-items:center;gap:8px;padding:8px;border-radius:8px;cursor:pointer;transition:background .15s}
+.admin-row:hover{background:var(--bg2)}
+.av{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+.av-name{font-size:11px;font-weight:600}
+.av-role{font-size:9px;color:var(--muted)}
+
+/* ── MAIN ─────────────────────────────────────── */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+#topbar{height:50px;min-height:50px;background:var(--bg1);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 18px;gap:10px}
+.tb-status{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}
+.tb-pulse{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pls 2s ease-in-out infinite}
+@keyframes pls{0%,100%{opacity:1}50%{opacity:.3}}
+.tb-spacer{flex:1}
+.tb-btn{width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:9px;cursor:pointer;color:var(--muted);background:transparent;border:none;font-size:15px;transition:all .15s;position:relative}
+.tb-btn:hover{background:var(--bg3);color:var(--text)}
+.nb{position:absolute;top:4px;right:4px;width:16px;height:16px;border-radius:50%;background:var(--red);color:#fff;font-size:8px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.stats-bar{display:flex;gap:16px;padding:0 18px;align-items:center;height:34px;border-bottom:1px solid var(--border);background:var(--bg0)}
+.stat-item{font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px}
+.stat-val{font-weight:700;color:var(--text)}
+.stat-sep{color:var(--border)}
+
+#content{flex:1;overflow:hidden;position:relative}
+.screen{position:absolute;inset:0;overflow:hidden;display:none;animation:fi .2s ease}
+.screen.active{display:flex;flex-direction:column}
+@keyframes fi{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── ATOMS ─────────────────────────────────────── */
+.card{background:var(--bg1);border:1px solid var(--border);border-radius:12px}
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px;border:1px solid}
+.bc{background:rgba(239,68,68,.12);color:#fca5a5;border-color:rgba(239,68,68,.25)}
+.bh{background:rgba(249,115,22,.12);color:#fdba74;border-color:rgba(249,115,22,.25)}
+.bm{background:rgba(234,179,8,.12);color:#fde047;border-color:rgba(234,179,8,.25)}
+.bl{background:rgba(59,130,246,.12);color:#93c5fd;border-color:rgba(59,130,246,.25)}
+.bs-pending{background:rgba(234,179,8,.1);color:#fde047;border-color:rgba(234,179,8,.2)}
+.bs-assigned{background:rgba(59,130,246,.1);color:#93c5fd;border-color:rgba(59,130,246,.2)}
+.bs-in_progress{background:rgba(168,85,247,.1);color:#d8b4fe;border-color:rgba(168,85,247,.2)}
+.bs-resolved{background:rgba(34,197,94,.1);color:#86efac;border-color:rgba(34,197,94,.2)}
+.bs-proposed{background:rgba(234,179,8,.1);color:#fde047;border-color:rgba(234,179,8,.2)}
+.bs-accepted{background:rgba(59,130,246,.1);color:#93c5fd;border-color:rgba(59,130,246,.2)}
+.pbar{height:5px;background:var(--bg3);border-radius:99px;overflow:hidden}
+.pf{height:100%;border-radius:99px;transition:width .7s cubic-bezier(.4,0,.2,1)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all .15s;font-family:inherit;white-space:nowrap}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.bp{background:var(--blue);color:#fff}.bp:hover:not(:disabled){background:#2563eb}
+.bg2{background:var(--green);color:#000}.bg2:hover:not(:disabled){background:#16a34a}
+.br2{background:var(--red);color:#fff}.br2:hover:not(:disabled){background:#dc2626}
+.bgh{background:transparent;color:var(--muted);border:1px solid var(--border)}.bgh:hover{background:var(--bg2);color:var(--text)}
+.bsm{padding:4px 10px;font-size:11px}
+.inp{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-size:12px;color:var(--text);outline:none;font-family:inherit;width:100%;transition:border-color .15s}
+.inp:focus{border-color:var(--blue)}
+.inp-wrap{position:relative;display:flex;align-items:center}
+.inp-ico{position:absolute;left:10px;color:var(--dim);font-size:13px;pointer-events:none}
+.inp-wrap .inp{padding-left:30px}
+select.inp option{background:var(--bg2)}
+.chip{padding:3px 10px;border-radius:99px;font-size:11px;font-weight:500;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all .15s;font-family:inherit}
+.chip.act{background:var(--blue);border-color:var(--blue);color:#fff}
+label.form-label{font-size:11px;font-weight:500;color:var(--muted);margin-bottom:4px;display:block}
+.form-row{margin-bottom:12px}
+
+/* ── MODAL ─────────────────────────────────────── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:200;display:none;align-items:center;justify-content:center}
+.overlay.open{display:flex;animation:fi .2s ease}
+.modal{background:var(--bg1);border:1px solid var(--border);border-radius:16px;width:460px;max-height:90vh;overflow-y:auto;padding:0}
+.modal-head{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg1);z-index:2}
+.modal-title{font-size:14px;font-weight:700}
+.modal-close{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;padding:0 4px}
+.modal-close:hover{color:var(--text)}
+.modal-body{padding:20px}
+.modal-foot{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;position:sticky;bottom:0;background:var(--bg1)}
+
+/* ── NOTIF PANEL ────────────────────────────────── */
+#notif-panel{position:fixed;top:50px;right:0;bottom:0;width:340px;background:var(--bg1);border-left:1px solid var(--border);z-index:150;transform:translateX(100%);transition:transform .25s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column}
+#notif-panel.open{transform:translateX(0)}
+.np-head{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.np-title{font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px}
+.np-actions{display:flex;gap:6px}
+.notif-item{padding:12px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s;display:flex;gap:10px}
+.notif-item:hover{background:var(--bg2)}
+.notif-item.unread{background:rgba(59,130,246,.04)}
+.notif-item.unread::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--blue);flex-shrink:0;margin-top:4px}
+.notif-ico{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.notif-txt{flex:1;min-width:0}
+.notif-msg{font-size:11px;font-weight:600;color:var(--text);line-height:1.4}
+.notif-sub{font-size:10px;color:var(--muted);margin-top:2px}
+.notif-time{font-size:9px;color:var(--dim);margin-top:3px}
+
+/* ── SCREEN 1: COMMAND CENTER ───────────────────── */
+#sc-cmd{flex-direction:row}
+#feed-col{width:300px;min-width:300px;border-right:1px solid var(--border);display:flex;flex-direction:column;background:var(--bg0);overflow:hidden}
+.fc-head{padding:10px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:6px}
+#feed-list{flex:1;overflow-y:auto;padding:5px}
+.fi{padding:9px 11px;border-radius:9px;border-left:3px solid;cursor:pointer;transition:all .15s;margin-bottom:4px}
+.fi:hover{background:var(--bg2)}
+.fi-top{display:flex;align-items:flex-start;gap:5px;margin-bottom:4px}
+.fi-title{font-size:11.5px;font-weight:600;flex:1;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.fi-score{font-size:10px;font-weight:800;padding:1px 5px;border-radius:4px;flex-shrink:0;line-height:1.4}
+.fi-meta{display:flex;flex-wrap:wrap;gap:5px;font-size:10px;color:var(--muted);align-items:center}
+.fi-loc{font-size:10px;color:var(--dim);margin-top:3px}
+#map-col{flex:1;position:relative;overflow:hidden;display:flex;flex-direction:column}
+#leaflet-map{flex:1;z-index:1}
+#detail-strip{border-top:1px solid var(--border);background:var(--bg1);padding:10px 14px;display:none;flex-shrink:0}
+.ds-inner{display:flex;align-items:flex-start;gap:10px}
+.ds-info{flex:1;min-width:0}
+.ds-btns{display:flex;gap:6px;align-items:center;flex-shrink:0}
+#asgn-col{width:280px;min-width:280px;border-left:1px solid var(--border);display:flex;flex-direction:column;background:var(--bg0);overflow:hidden}
+.ac-head{padding:10px 12px;border-bottom:1px solid var(--border);font-size:12px;font-weight:700;display:flex;align-items:center;gap:5px}
+.ac-cnt{font-size:9px;padding:1px 6px;border-radius:99px;background:rgba(249,115,22,.2);color:#fdba74;margin-left:auto}
+#asgn-list{flex:1;overflow-y:auto;padding:5px}
+.acard{background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:9px 11px;margin-bottom:5px}
+.acard-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;gap:5px}
+.acard-name{font-size:11.5px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acard-iss{font-size:10px;color:var(--muted);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acard-row{display:flex;align-items:center;justify-content:space-between;font-size:10px;color:var(--dim)}
+
+/* ── SCREEN 2: ANALYTICS ────────────────────────── */
+#sc-anly{overflow-y:auto;padding:18px;gap:14px;flex-direction:column}
+.mg{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.mc{background:var(--bg1);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+.mc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.mc-ico{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.mc-val{font-size:28px;font-weight:800;letter-spacing:-1px}
+.mc-sub{font-size:10px;color:var(--muted);margin-top:2px}
+.cg2{display:grid;grid-template-columns:2fr 1fr;gap:12px}
+.c2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ch{padding:14px 16px;border-bottom:1px solid var(--border);font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:space-between}
+.cb{padding:14px}
+.insight{background:rgba(59,130,246,.05);border:1px solid rgba(59,130,246,.18);border-radius:12px;padding:14px 16px;display:flex;gap:12px}
+.insight-ico{width:34px;height:34px;background:var(--blue);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;margin-top:1px}
+.trow{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)}
+.trow:last-child{border:none}
+.sparkline{display:flex;align-items:flex-end;gap:1.5px;height:18px;width:44px}
+.sb{flex:1;border-radius:2px 2px 0 0;min-height:2px}
+
+/* ── SCREEN 3: VOLUNTEERS ───────────────────────── */
+#sc-vol{overflow-y:auto;padding:18px;flex-direction:column;gap:12px;position:relative}
+#vol-drawer{position:absolute;right:0;top:0;bottom:0;width:300px;background:var(--bg1);border-left:1px solid var(--border);z-index:20;overflow-y:auto;transform:translateX(100%);transition:transform .25s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column}
+#vol-drawer.open{transform:translateX(0)}
+.dh{padding:13px 15px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{background:var(--bg2);color:var(--muted);font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;padding:9px 12px;text-align:left}
+tbody tr{border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
+tbody tr:hover{background:var(--bg2)}
+tbody td{padding:9px 12px}
+.sk{font-size:9px;background:var(--bg3);color:var(--muted);border-radius:4px;padding:2px 5px;display:inline-block;margin:1px}
+.v-avail{color:var(--green)}.v-busy{color:var(--orange)}.v-offline{color:var(--dim)}
+
+/* ── SCREEN 4: ISSUE DETAIL ─────────────────────── */
+#sc-det{overflow-y:auto;padding:18px;flex-direction:column;gap:12px}
+.frow{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.fl{font-size:11px;color:var(--muted);width:90px;flex-shrink:0}
+.fv{font-size:11px;font-family:monospace;color:var(--text);width:32px;text-align:right;flex-shrink:0}
+.mcard{background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:10px 12px;margin-bottom:6px}
+.mc-top2{display:flex;align-items:center;gap:7px;margin-bottom:5px}
+.mc-rk{width:20px;height:20px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0}
+.mc-nm{font-size:12px;font-weight:600;flex:1}
+.mc-sc{font-size:13px;font-weight:700;color:var(--blue-l)}
+.mc-bot{display:flex;align-items:center;justify-content:space-between;font-size:10px;color:var(--dim);margin-top:6px}
+.tl{position:relative;padding-left:18px}
+.tl::before{content:'';position:absolute;left:5px;top:0;bottom:0;width:1px;background:var(--border)}
+.tli{position:relative;margin-bottom:12px}
+.tli-dot{position:absolute;left:-17px;width:10px;height:10px;border-radius:50%;border:2px solid;background:var(--bg1)}
+.tli-t{font-size:11px;font-weight:500}
+.tli-s{font-size:10px;color:var(--dim);margin-top:1px}
+
+/* ── SCREEN 5: PERFORMANCE ──────────────────────── */
+#sc-perf{overflow-y:auto;padding:18px;flex-direction:column;gap:12px}
+.pg{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.tr-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)}
+.tr-row:last-child{border:none}
+.rk{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+
+/* ── SCREEN 6: ADMIN ────────────────────────────── */
+#sc-admin{overflow-y:auto;padding:18px;flex-direction:column;gap:12px}
+.admin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.admin-card{background:var(--bg1);border:1px solid var(--border);border-radius:12px;padding:16px}
+.admin-card-title{font-size:12px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.config-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px}
+.config-row:last-child{border:none}
+.toggle{position:relative;width:36px;height:20px;cursor:pointer}
+.toggle input{opacity:0;width:0;height:0;position:absolute}
+.toggle-track{position:absolute;inset:0;border-radius:10px;background:var(--bg3);transition:background .2s}
+.toggle input:checked+.toggle-track{background:var(--blue)}
+.toggle-thumb{position:absolute;width:14px;height:14px;border-radius:50%;background:#fff;top:3px;left:3px;transition:transform .2s}
+.toggle input:checked~.toggle-thumb{transform:translateX(16px)}
+.activity-log{max-height:300px;overflow-y:auto}
+.log-item{padding:7px 0;border-bottom:1px solid var(--border);font-size:11px;display:flex;gap:8px}
+.log-time{color:var(--dim);flex-shrink:0;font-family:monospace;font-size:10px}
+.log-msg{color:var(--muted)}
+
+/* ── GAUGE SVG ──────────────────────────────────── */
+.gauge-wrap{display:flex;flex-direction:column;align-items:center;gap:4px}
+
+/* ── TOAST ──────────────────────────────────────── */
+#toast-zone{position:fixed;bottom:24px;right:24px;z-index:999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:8px;pointer-events:auto;animation:fi .2s ease;box-shadow:0 4px 20px rgba(0,0,0,.4);max-width:320px}
+.toast-ico{font-size:15px;flex-shrink:0}
+
+/* ── MATCHING EXPLAINER ──────────────────────────── */
+.match-algo{background:rgba(59,130,246,.05);border:1px solid rgba(59,130,246,.15);border-radius:8px;padding:10px 12px;font-size:10px;color:var(--muted);margin-bottom:8px;font-family:monospace;line-height:1.7}
+.match-algo strong{color:var(--blue-l)}
+
+/* ── UTILS ──────────────────────────────────────── */
+.flex{display:flex}.ia{align-items:center}.jb{justify-content:space-between}.g4{gap:4px}.g8{gap:8px}
+.mt4{margin-top:4px}.mt8{margin-top:8px}.mt12{margin-top:12px}
+.ts{font-size:12px}.txs{font-size:10px}.txss{font-size:9px}.tm{color:var(--muted)}.td{color:var(--dim)}
+.fw7{font-weight:700}.fw6{font-weight:600}
+.tr{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.w100{width:100%}.hidden{display:none!important}
+
+/* Google Maps Override */
+.gm-style-iw-c { background: var(--bg2) !important; border: 1px solid var(--border) !important; border-radius: 10px !important; padding: 10px !important; box-shadow: 0 4px 20px rgba(0,0,0,.5) !important; }
+.gm-style-iw-d { overflow: hidden !important; color: var(--text) !important; }
+.gm-style-iw-tc::after { background: var(--bg2) !important; }
+.gm-ui-hover-effect { display: none !important; } /* Hide default close button */
+.gm-style .gm-style-iw-t::after { display: none; }
+.custom-marker { cursor:pointer; transition:transform .15s; }
+.custom-marker:hover { transform:scale(1.2); z-index: 100 !important; }
+@keyframes mapPing { 0% { transform: scale(0.8); opacity: 1; } 100% { transform: scale(3.5); opacity: 0; } }
+</style>
+</head>
+<body>
+
+<!-- ════════════════ SIDEBAR ════════════════ -->
+<div id="sidebar">
+  <div class="sb-logo">
+    <div class="sb-icon">⚡</div>
+    <div>
+      <div class="sb-name">SmartAlloc</div>
+      <div class="sb-sub">NGO Operations Platform</div>
+    </div>
+  </div>
+  <div class="ngo-pill">
+    <div class="fw6" style="font-size:11px">Shivam Sewa Foundation</div>
+    <div class="tm txs mt4">📍 Pune, Maharashtra</div>
+    <div class="live-row">
+      <div class="live-dot"></div>
+      <span class="live-txt">Live</span>
+      <span class="live-time" id="clock">--:--</span>
+    </div>
+  </div>
+  <nav>
+    <div class="ni active" data-s="cmd">  <span class="ni-ico">🗺️</span> Command Center</div>
+    <div class="ni"         data-s="anly"><span class="ni-ico">📊</span> Analytics</div>
+    <div class="ni"         data-s="vol"> <span class="ni-ico">👥</span> Volunteers</div>
+    <div class="ni"         data-s="det"> <span class="ni-ico">📋</span> Issue Detail</div>
+    <div class="ni"         data-s="perf"><span class="ni-ico">🏆</span> Performance</div>
+    <div class="ni"         data-s="admin"><span class="ni-ico">⚙️</span> Admin Panel</div>
+  </nav>
+  <div class="sb-footer">
+    <div class="admin-row" onclick="goScreen('admin')">
+      <div class="av">A</div>
+      <div>
+        <div class="av-name">NGO Admin</div>
+        <div class="av-role">admin@shivamsewa.org</div>
+      </div>
+      <span style="margin-left:auto;font-size:12px;color:var(--dim)">›</span>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ MAIN ════════════════ -->
+<div id="main">
+  <div id="topbar">
+    <div class="tb-status"><div class="tb-pulse"></div>All systems operational</div>
+    <div class="tb-spacer"></div>
+    <div id="realtime-counter" style="font-size:10px;color:var(--muted);margin-right:8px"></div>
+    <button class="tb-btn" onclick="toggleNotif()" title="Notifications" id="notif-btn">🔔<span class="nb" id="nb-count">3</span></button>
+    <button class="tb-btn" onclick="openModal('modal-add-issue')" title="Report Issue">➕</button>
+    <button class="tb-btn" onclick="openModal('modal-settings')" title="Settings">⚙️</button>
+  </div>
+  <div class="stats-bar">
+    <div class="stat-item">Issues: <span class="stat-val" id="st-issues">7</span></div>
+    <div class="stat-sep">·</div>
+    <div class="stat-item">Critical: <span class="stat-val" style="color:var(--red)" id="st-crit">3</span></div>
+    <div class="stat-sep">·</div>
+    <div class="stat-item">Volunteers: <span class="stat-val" id="st-vols">8</span></div>
+    <div class="stat-sep">·</div>
+    <div class="stat-item">Available: <span class="stat-val" style="color:var(--green)" id="st-avail">5</span></div>
+    <div class="stat-sep">·</div>
+    <div class="stat-item">Active Assignments: <span class="stat-val" id="st-asgn">3</span></div>
+    <div class="stat-sep">·</div>
+    <div class="stat-item">Resolved today: <span class="stat-val" style="color:var(--green)" id="st-res">1</span></div>
+  </div>
+
+  <div id="content">
+
+    <!-- ══════════════════════════════════════════
+         SCREEN 1: COMMAND CENTER
+    ══════════════════════════════════════════ -->
+    <div class="screen active" id="sc-cmd">
+      <!-- Feed -->
+      <div id="feed-col">
+        <div class="fc-head">
+          <div class="flex ia jb">
+            <span style="font-size:12px;font-weight:700">⚡ Live Issues <span id="crit-badge" style="font-size:9px;background:rgba(239,68,68,.2);color:#fca5a5;padding:1px 6px;border-radius:99px"></span></span>
+            <button class="btn bgh bsm" onclick="renderFeed()">↻</button>
+          </div>
+          <div class="inp-wrap"><span class="inp-ico">🔍</span><input class="inp" id="feed-q" placeholder="Search issues…" oninput="renderFeed()" style="font-size:11px;padding:6px 6px 6px 28px"/></div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap" id="tier-chips">
+            <button class="chip act" data-t="">All</button>
+            <button class="chip" data-t="Critical">Critical</button>
+            <button class="chip" data-t="High">High</button>
+            <button class="chip" data-t="Medium">Medium</button>
+          </div>
+        </div>
+        <div id="feed-list"></div>
+      </div>
+
+      <!-- Real Google Map -->
+      <div id="map-col">
+        <div id="google-map" style="flex:1;z-index:1"></div>
+        <div id="detail-strip">
+          <div class="ds-inner">
+            <div class="ds-info">
+              <div id="ds-badges" style="display:flex;gap:5px;margin-bottom:5px"></div>
+              <div id="ds-title" class="fw6" style="font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+              <div id="ds-desc" class="tm txs mt4" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+            </div>
+            <div class="ds-btns">
+              <button class="btn bp bsm" onclick="goDetail()">View Detail →</button>
+              <button class="btn bgh bsm" onclick="closeStrip()">✕</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Assignments -->
+      <div id="asgn-col">
+        <div class="ac-head">🔔 Assignments <span class="ac-cnt" id="ac-cnt"></span></div>
+        <div id="asgn-list"></div>
+        <div style="padding:8px;border-top:1px solid var(--border)">
+          <button class="btn bp w100" onclick="openModal('modal-add-issue')">+ Report New Issue</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         SCREEN 2: ANALYTICS
+    ══════════════════════════════════════════ -->
+    <div class="screen" id="sc-anly">
+      <div class="flex ia jb" style="flex-shrink:0">
+        <div><h2 style="font-size:17px;font-weight:800">Analytics</h2><p class="tm txs mt4">Real-time NGO performance overview</p></div>
+        <select class="inp" style="width:auto;font-size:11px" onchange="initAnalytics()"><option>Last 7 days</option><option>Last 30 days</option><option>All time</option></select>
+      </div>
+      <div class="mg" id="anly-mg"></div>
+      <div class="cg2">
+        <div class="card"><div class="ch">📈 Issue Trends (30 days)</div><div class="cb"><canvas id="trendChart" height="170"></canvas></div></div>
+        <div class="card"><div class="ch">🍩 By Category</div><div class="cb" style="display:flex;flex-direction:column;align-items:center"><canvas id="donutChart" width="170" height="170"></canvas><div id="donut-leg" style="width:100%;margin-top:8px"></div></div></div>
+      </div>
+      <div class="c2">
+        <div class="card"><div class="ch">📊 Resolved vs Open (8 weeks)</div><div class="cb"><canvas id="resolChart" height="150"></canvas></div></div>
+        <div class="card"><div class="ch">📡 Category Signals</div><div class="cb" id="trend-list"></div></div>
+      </div>
+      <div class="insight">
+        <div class="insight-ico">🤖</div>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--blue-l);margin-bottom:5px">AI Weekly Insight</div>
+          <div style="font-size:12px;color:var(--muted);line-height:1.6" id="insight-txt"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         SCREEN 3: VOLUNTEERS
+    ══════════════════════════════════════════ -->
+    <div class="screen" id="sc-vol" style="position:relative">
+      <div class="flex ia jb" style="flex-shrink:0">
+        <div><h2 style="font-size:17px;font-weight:800">Volunteers</h2><p class="tm txs mt4" id="vc-label"></p></div>
+        <button class="btn bp" onclick="openModal('modal-add-vol')">+ Add Volunteer</button>
+      </div>
+      <div class="flex g8" style="flex-shrink:0">
+        <div class="inp-wrap" style="flex:1"><span class="inp-ico">🔍</span><input class="inp" id="vol-q" placeholder="Search name or location…" oninput="renderVols()" style="padding:7px 7px 7px 28px;font-size:11px"/></div>
+        <select class="inp" id="vol-sf" onchange="renderVols()" style="width:150px;font-size:11px">
+          <option value="">All Skills</option>
+          <option>first_aid</option><option>medical</option><option>water_testing</option>
+          <option>construction</option><option>education</option><option>counseling</option>
+          <option>logistics</option><option>tech</option><option>translation</option><option>driving</option>
+        </select>
+        <select class="inp" id="vol-ss" onchange="renderVols()" style="width:130px;font-size:11px">
+          <option value="">All Statuses</option><option>available</option><option>busy</option><option>offline</option>
+        </select>
+      </div>
+      <div class="card" style="overflow:auto;flex:1">
+        <table><thead><tr>
+          <th>Volunteer</th><th>Skills</th><th>Location</th><th>Tasks</th><th>Response Rate</th><th>Status</th><th>Match Score</th><th></th>
+        </tr></thead><tbody id="vol-tbody"></tbody></table>
+      </div>
+      <div id="vol-drawer">
+        <div class="dh"><span class="fw7" style="font-size:13px">Volunteer Profile</span><button style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer" onclick="closeDrawer()">✕</button></div>
+        <div id="drawer-body" style="padding:14px"></div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         SCREEN 4: ISSUE DETAIL
+    ══════════════════════════════════════════ -->
+    <div class="screen" id="sc-det">
+      <div class="flex ia g8" style="flex-shrink:0">
+        <button class="btn bgh bsm" onclick="goScreen('cmd')">← Back</button>
+        <span class="tm txs">/ Issue Detail</span>
+      </div>
+      <div class="flex ia g8" style="flex-shrink:0;flex-wrap:wrap">
+        <div style="flex:1;min-width:0">
+          <div id="det-badges" style="display:flex;gap:5px;margin-bottom:7px"></div>
+          <h2 id="det-title" style="font-size:16px;font-weight:800;line-height:1.3"></h2>
+          <p id="det-loc" class="tm txs mt4"></p>
+        </div>
+        <div class="gauge-wrap">
+          <canvas id="gaugeC" width="130" height="78"></canvas>
+          <span class="txs tm">Priority Score</span>
+        </div>
+      </div>
+      <div class="card" style="flex-shrink:0">
+        <div class="cb">
+          <p id="det-desc" class="txs tm" style="line-height:1.6;margin-bottom:10px"></p>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;border-top:1px solid var(--border);padding-top:10px" id="det-stats"></div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 300px;gap:12px;flex:1;min-height:0;overflow:auto">
+        <div class="flex" style="flex-direction:column;gap:12px;overflow:auto">
+          <div class="card">
+            <div class="ch">🛡️ Priority Score Breakdown <span class="txs tm" style="font-weight:400">Score = Severity × Frequency × Urgency × e^(-λt)</span></div>
+            <div class="cb" id="det-factors"></div>
+          </div>
+          <div class="card">
+            <div class="ch">🕐 Assignment Timeline</div>
+            <div class="cb"><div class="tl" id="det-timeline"></div></div>
+          </div>
+        </div>
+        <div class="card" style="overflow:auto">
+          <div class="ch">👥 Matched Volunteers <span id="match-policy" style="font-size:10px;padding:2px 8px;border-radius:99px;margin-left:4px"></span></div>
+          <div class="match-algo">
+            Score = <strong>0.35</strong>×skill + <strong>0.25</strong>×proximity +<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>0.20</strong>×availability + <strong>0.10</strong>×workload + <strong>0.10</strong>×response_rate
+          </div>
+          <div style="padding:0 10px 10px" id="match-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         SCREEN 5: PERFORMANCE
+    ══════════════════════════════════════════ -->
+    <div class="screen" id="sc-perf">
+      <div style="flex-shrink:0"><h2 style="font-size:17px;font-weight:800">Performance Report</h2><p class="tm txs mt4">Operational metrics and volunteer analytics</p></div>
+      <div class="pg" id="perf-kpis"></div>
+      <div class="c2">
+        <div class="card"><div class="ch">📊 Resolved vs Open</div><div class="cb"><canvas id="pResolC" height="170"></canvas></div></div>
+        <div class="card"><div class="ch">⏱️ Avg Response Time (min)</div><div class="cb"><canvas id="pRespC" height="170"></canvas></div></div>
+      </div>
+      <div class="c2">
+        <div class="card"><div class="ch">📈 Volunteer Utilization (this week)</div><div class="cb"><canvas id="pUtilC" height="170"></canvas></div></div>
+        <div class="card"><div class="ch">⭐ Top Volunteers</div><div class="cb" id="top-vols"></div></div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         SCREEN 6: ADMIN PANEL (OPERATIONS COMMAND CENTER)
+    ══════════════════════════════════════════ -->
+    <div class="screen" id="sc-admin">
+      <div class="flex ia jb" style="flex-shrink:0">
+        <div><h2 style="font-size:17px;font-weight:800">🛠️ Operations Command Center</h2><p class="tm txs mt4">Mission control for NGO data, volunteers, and system logs</p></div>
+        <div class="flex g8">
+          <button class="btn bgh bsm" onclick="saveAdminSettings()">💾 Save Configurations</button>
+        </div>
+      </div>
+      <div class="admin-grid">
+        <!-- NGO Settings -->
+        <div class="admin-card">
+          <div class="admin-card-title">🏢 NGO Project Configuration</div>
+          <div class="form-row"><label class="form-label">Organization Name</label><input class="inp" id="cfg-name" value="Shivam Sewa Foundation"/></div>
+          <div class="form-row"><label class="form-label">District</label><input class="inp" id="cfg-dist" value="Pune"/></div>
+          <div class="form-row"><label class="form-label">Contact Email</label><input class="inp" id="cfg-email" value="admin@shivamsewa.org"/></div>
+          <div class="form-row"><label class="form-label">Alert Threshold Score</label><input class="inp" type="number" id="cfg-thresh" value="75" min="0" max="100"/></div>
+        </div>
+        <!-- System Toggles -->
+        <div class="admin-card">
+          <div class="admin-card-title">🔧 System Toggles</div>
+          <div class="config-row">
+            <span>Auto-assignment engine</span>
+            <label class="toggle"><input type="checkbox" id="tog-auto" checked><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          </div>
+          <div class="config-row">
+            <span>WhatsApp notifications</span>
+            <label class="toggle"><input type="checkbox" id="tog-wa" checked><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          </div>
+          <div class="config-row">
+            <span>SMS fallback</span>
+            <label class="toggle"><input type="checkbox" id="tog-sms" checked><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          </div>
+          <div class="config-row">
+            <span>Priority AI scoring</span>
+            <label class="toggle"><input type="checkbox" id="tog-ai" checked><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          </div>
+          <div class="config-row">
+            <span>Offline sync queue</span>
+            <label class="toggle"><input type="checkbox" id="tog-off" checked><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          </div>
+          <div class="config-row">
+            <span>Admin quiet hours (10pm–6am)</span>
+            <label class="toggle"><input type="checkbox" id="tog-qh"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          </div>
+        </div>
+        <!-- Quick Stats & Exports -->
+        <div class="admin-card">
+          <div class="admin-card-title">💾 Data Storage & Reports</div>
+          <div class="config-row"><span class="tm txs">Total issues logged</span><span class="fw7" id="adm-ti"></span></div>
+          <div class="config-row"><span class="tm txs">Active volunteers</span><span class="fw7" id="adm-av"></span></div>
+          <div class="config-row"><span class="tm txs">Database status</span><span style="color:var(--green);font-size:11px;font-weight:600">Secure (Encrypted)</span></div>
+          <div class="flex g8 mt12">
+            <button class="btn bp bsm w100" onclick="exportData()">📤 Export JSON Report</button>
+          </div>
+        </div>
+      </div>
+      <!-- Manage Issues Table -->
+      <div class="card">
+        <div class="ch">📋 Issue Management
+          <div style="margin-left:auto; display:flex; gap: 8px;">
+            <button class="btn bp bsm" onclick="openModal('modal-payments')">💸 Manage Payments</button>
+            <button class="btn bgh bsm" onclick="openModal('modal-add-issue')">+ New Issue</button>
+          </div>
+        </div>
+        <div style="overflow:auto;max-height:220px">
+          <table><thead><tr><th>ID</th><th>Title</th><th>Category</th><th>Priority</th><th>Status</th><th>Affected</th><th>Action</th></tr></thead>
+          <tbody id="admin-issue-tbl"></tbody>
+          </table>
+        </div>
+      </div>
+      <!-- Activity Log -->
+      <div class="card">
+        <div class="ch">📜 Activity Log</div>
+        <div class="cb activity-log" id="activity-log"></div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- ══════════════════ NOTIFICATION PANEL ══════════════════ -->
+<div id="notif-panel">
+  <div class="np-head">
+    <span class="np-title">🔔 Notifications <span id="unread-cnt" style="font-size:9px;background:rgba(239,68,68,.2);color:#fca5a5;padding:1px 6px;border-radius:99px;margin-left:4px"></span></span>
+    <div class="np-actions">
+      <button class="btn bgh bsm" onclick="markAllRead()">Mark all read</button>
+      <button class="btn bgh bsm" onclick="toggleNotif()">✕</button>
+    </div>
+  </div>
+  <div id="notif-list" style="flex:1;overflow-y:auto"></div>
+</div>
+
+<!-- ══════════════════ TOAST ZONE ══════════════════ -->
+<div id="toast-zone"></div>
+
+<!-- ══════════════════ MODALS ══════════════════ -->
+
+<!-- Add Issue Modal -->
+<div class="overlay" id="modal-add-issue">
+  <div class="modal" style="width:520px">
+    <div class="modal-head">
+      <span class="modal-title">📌 Report New Issue</span>
+      <button class="modal-close" onclick="closeModal('modal-add-issue')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row"><label class="form-label">Issue Title *</label><input class="inp" id="ni-title" placeholder="Brief description of the problem…"/></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="form-row"><label class="form-label">Category *</label>
+          <select class="inp" id="ni-cat">
+            <option value="">Select…</option>
+            <option>water</option><option>health</option><option>education</option>
+            <option>infrastructure</option><option>food</option><option>sanitation</option><option>safety</option>
+          </select></div>
+        <div class="form-row"><label class="form-label">Severity (1–5) *</label>
+          <input class="inp" type="range" id="ni-sev" min="1" max="5" value="3" oninput="document.getElementById('ni-sev-val').textContent=this.value"/>
+          <div class="flex ia jb mt4"><span class="txs tm">Low</span><span id="ni-sev-val" class="txs fw7 blue" style="color:var(--blue)">3</span><span class="txs tm">High</span></div>
+        </div>
+      </div>
+      <div class="form-row"><label class="form-label">Description</label><textarea class="inp" id="ni-desc" rows="3" placeholder="Additional details…" style="resize:vertical"></textarea></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="form-row"><label class="form-label">People Affected *</label><input class="inp" type="number" id="ni-affected" placeholder="e.g. 45" min="1"/></div>
+        <div class="form-row"><label class="form-label">Location Label</label><input class="inp" id="ni-loc" placeholder="e.g. Block 4, Hadapsar"/></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="form-row"><label class="form-label">Latitude</label><input class="inp" type="number" id="ni-lat" value="18.5204" step="0.0001"/></div>
+        <div class="form-row"><label class="form-label">Longitude</label><input class="inp" type="number" id="ni-lng" value="73.8567" step="0.0001"/></div>
+      </div>
+      <div style="background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.15);border-radius:8px;padding:10px;font-size:11px;color:var(--muted)">
+        🤖 <strong style="color:var(--blue-l)">AI Scoring:</strong> Priority score will be auto-calculated using: Severity × Frequency × Urgency × e^(−0.02×hours)
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn bgh" onclick="closeModal('modal-add-issue')">Cancel</button>
+      <button class="btn bp" onclick="saveIssue()">✔ Submit Issue</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Volunteer Modal -->
+<div class="overlay" id="modal-add-vol">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-title">👤 Add Volunteer</span>
+      <button class="modal-close" onclick="closeModal('modal-add-vol')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="form-row"><label class="form-label">Full Name *</label><input class="inp" id="nv-name" placeholder="e.g. Priya Sharma"/></div>
+        <div class="form-row"><label class="form-label">Phone *</label><input class="inp" id="nv-phone" placeholder="+91 9876543210"/></div>
+      </div>
+      <div class="form-row"><label class="form-label">Skills (select all that apply)</label>
+        <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:4px" id="skill-picks">
+          <button class="chip" data-sk="first_aid" onclick="toggleSkill(this)">first aid</button>
+          <button class="chip" data-sk="medical" onclick="toggleSkill(this)">medical</button>
+          <button class="chip" data-sk="water_testing" onclick="toggleSkill(this)">water testing</button>
+          <button class="chip" data-sk="construction" onclick="toggleSkill(this)">construction</button>
+          <button class="chip" data-sk="education" onclick="toggleSkill(this)">education</button>
+          <button class="chip" data-sk="counseling" onclick="toggleSkill(this)">counseling</button>
+          <button class="chip" data-sk="logistics" onclick="toggleSkill(this)">logistics</button>
+          <button class="chip" data-sk="tech" onclick="toggleSkill(this)">tech</button>
+          <button class="chip" data-sk="translation" onclick="toggleSkill(this)">translation</button>
+          <button class="chip" data-sk="driving" onclick="toggleSkill(this)">driving</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="form-row"><label class="form-label">Location</label><input class="inp" id="nv-loc" placeholder="e.g. Hadapsar, Pune"/></div>
+        <div class="form-row"><label class="form-label">Distance Willing (km)</label><input class="inp" type="number" id="nv-km" value="10" min="1" max="50"/></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="form-row"><label class="form-label">Latitude</label><input class="inp" type="number" id="nv-lat" value="18.5204" step="0.0001"/></div>
+        <div class="form-row"><label class="form-label">Longitude</label><input class="inp" type="number" id="nv-lng" value="73.8567" step="0.0001"/></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="form-row"><label class="form-label">Languages</label><input class="inp" id="nv-lang" placeholder="Hindi, Marathi"/></div>
+        <div class="form-row"><label class="form-label">Hours/week</label><input class="inp" type="number" id="nv-hrs" value="10" min="1" max="40"/></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn bgh" onclick="closeModal('modal-add-vol')">Cancel</button>
+      <button class="btn bp" onclick="saveVolunteer()">✔ Register Volunteer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Assign Modal -->
+<div class="overlay" id="modal-assign">
+  <div class="modal" style="width:420px">
+    <div class="modal-head">
+      <span class="modal-title" id="assign-modal-title">Assign Volunteer</span>
+      <button class="modal-close" onclick="closeModal('modal-assign')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="assign-modal-content"></div>
+      <div class="form-row mt8"><label class="form-label">Notes for volunteer</label><textarea class="inp" id="assign-notes" rows="2" placeholder="Any special instructions…"></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn bgh" onclick="closeModal('modal-assign')">Cancel</button>
+      <button class="btn bp" id="assign-confirm-btn">✔ Confirm Assignment</button>
+    </div>
+  </div>
+</div>
+
+<!-- Payments Modal -->
+<div class="overlay" id="modal-payments">
+  <div class="modal" style="width:520px">
+    <div class="modal-head">
+      <span class="modal-title">💸 Volunteer Payments & Bonuses</span>
+      <button class="modal-close" onclick="closeModal('modal-payments')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="insight" style="margin-bottom: 12px; padding: 10px; align-items:center;">
+        <span style="font-size:24px">💰</span>
+        <div>
+          <div style="font-weight:700; font-size:12px;">Total Pending Payout: ₹4,250</div>
+          <div style="font-size:10px; color:var(--muted)">Includes base stipend and performance bonuses (Top 3 vols).</div>
+        </div>
+        <button class="btn bp bsm" style="margin-left:auto" onclick="processAllPayments()">Pay All</button>
+      </div>
+      <table style="width:100%">
+        <thead><tr><th>Volunteer</th><th>Tasks</th><th>Stipend</th><th>Bonus</th><th>Total</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr><td><div class="fw6">Priya Sharma</div></td><td>23</td><td>₹1150</td><td><span style="color:var(--green)">+₹500</span></td><td>₹1650</td><td><button class="btn bgh bsm">Pay</button></td></tr>
+          <tr><td><div class="fw6">Anita Kadam</div></td><td>31</td><td>₹1550</td><td><span style="color:var(--green)">+₹500</span></td><td>₹2050</td><td><button class="btn bgh bsm">Pay</button></td></tr>
+          <tr><td><div class="fw6">Meena Raut</div></td><td>19</td><td>₹950</td><td><span style="color:var(--green)">+₹500</span></td><td>₹1450</td><td><button class="btn bgh bsm">Pay</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Global Settings Modal -->
+<div class="overlay" id="modal-settings">
+  <div class="modal" style="width:580px">
+    <div class="modal-head">
+      <span class="modal-title">⚙️ Personal & System Settings</span>
+      <button class="modal-close" onclick="closeModal('modal-settings')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:0">
+      <div style="display:flex; height: 380px;">
+        <!-- Left Sidebar for Settings -->
+        <div style="width:160px; border-right:1px solid var(--border); background:var(--bg0); padding:10px 0;">
+          <div class="ni active" style="margin:0 8px; font-size:11px; border-radius:6px;" onclick="setSetTab('set-prof', this)">👤 Profile</div>
+          <div class="ni" style="margin:0 8px; font-size:11px; border-radius:6px;" onclick="setSetTab('set-notif', this)">🔔 Notifications</div>
+          <div class="ni" style="margin:0 8px; font-size:11px; border-radius:6px;" onclick="setSetTab('set-sec', this)">🔐 Security</div>
+          <div class="ni" style="margin:0 8px; font-size:11px; border-radius:6px;" onclick="setSetTab('set-sys', this)">🌐 System</div>
+          <div class="ni" style="margin:0 8px; font-size:11px; border-radius:6px;" onclick="setSetTab('set-int', this)">🔗 Integrations</div>
+        </div>
+        <!-- Right Content -->
+        <div style="flex:1; padding:16px; overflow-y:auto; background:var(--bg1)">
+          
+          <div id="set-prof" class="set-pane">
+            <h3 style="font-size:13px; margin-bottom:14px;">Profile Settings</h3>
+            <div class="form-row"><label class="form-label">Full Name</label><input class="inp" value="NGO Admin"/></div>
+            <div class="form-row"><label class="form-label">Email</label><input class="inp" value="admin@shivamsewa.org"/></div>
+            <div class="form-row"><label class="form-label">Role</label><input class="inp" value="Super Administrator" disabled style="opacity:0.6"/></div>
+            <button class="btn bp mt8" onclick="toast('Profile updated','💾','var(--blue)')">Save Profile</button>
+          </div>
+
+          <div id="set-notif" class="set-pane" style="display:none">
+            <h3 style="font-size:13px; margin-bottom:14px;">Notification Preferences</h3>
+            <div class="config-row"><span>Push Alerts for Tasks</span><label class="toggle"><input type="checkbox" checked><div class="toggle-track"></div><div class="toggle-thumb"></div></label></div>
+            <div class="config-row"><span>Payment & Bonus Summaries</span><label class="toggle"><input type="checkbox" checked><div class="toggle-track"></div><div class="toggle-thumb"></div></label></div>
+            <div class="config-row"><span>Critical Issue Escalations</span><label class="toggle"><input type="checkbox" checked><div class="toggle-track"></div><div class="toggle-thumb"></div></label></div>
+            <div class="form-row mt12"><label class="form-label">Daily Digest Email Trigger</label>
+              <select class="inp"><option>08:00 AM</option><option>06:00 PM</option><option>Do Not Send</option></select>
+            </div>
+          </div>
+
+          <div id="set-sec" class="set-pane" style="display:none">
+            <h3 style="font-size:13px; margin-bottom:14px;">Security Settings</h3>
+            <div class="config-row"><span>Two-Factor Auth (2FA)</span><label class="toggle"><input type="checkbox" checked><div class="toggle-track"></div><div class="toggle-thumb"></div></label></div>
+            <div class="config-row"><span>Require PIN for Payments</span><label class="toggle"><input type="checkbox" checked><div class="toggle-track"></div><div class="toggle-thumb"></div></label></div>
+            <div class="form-row mt12"><label class="form-label">Current Password</label><input class="inp" type="password" value="********"/></div>
+            <div class="form-row"><label class="form-label">New Password</label><input class="inp" type="password" placeholder="••••••••"/></div>
+            <button class="btn bp">Update Password</button>
+          </div>
+
+          <div id="set-sys" class="set-pane" style="display:none">
+            <h3 style="font-size:13px; margin-bottom:14px;">System Preferences</h3>
+            <div class="form-row"><label class="form-label">Display Language</label>
+              <select class="inp"><option>English</option><option>Hindi</option><option>Marathi</option></select>
+            </div>
+            <div class="config-row"><span>Dark Mode UI</span><label class="toggle"><input type="checkbox" checked><div class="toggle-track"></div><div class="toggle-thumb"></div></label></div>
+            <div class="config-row"><span>Compact Tables Mode</span><label class="toggle"><input type="checkbox"><div class="toggle-track"></div><div class="toggle-thumb"></div></label></div>
+            <div style="font-size:10px; color:var(--muted); margin-top:20px;">Platform Version: v2.1.0-build.82</div>
+          </div>
+
+          <div id="set-int" class="set-pane" style="display:none">
+            <h3 style="font-size:13px; margin-bottom:14px;">External Integrations</h3>
+            <div style="border:1px solid var(--border); padding:10px; border-radius:8px; margin-bottom:10px;">
+              <div class="flex jb ia">
+                <div class="fw6">Twilio WhatsApp API</div>
+                <span class="badge" style="background:rgba(34,197,94,.1);color:#86efac;border-color:rgba(34,197,94,.2)">Connected</span>
+              </div>
+            </div>
+            <div style="border:1px solid var(--border); padding:10px; border-radius:8px; margin-bottom:10px;">
+              <div class="flex jb ia">
+                <div class="fw6">Razorpay Gateway</div>
+                <span class="badge" style="background:rgba(34,197,94,.1);color:#86efac;border-color:rgba(34,197,94,.2)">Connected</span>
+              </div>
+            </div>
+            <div style="border:1px solid var(--border); padding:10px; border-radius:8px;">
+              <div class="flex jb ia">
+                <div class="fw6">Google Firebase Data</div>
+                <button class="btn bgh bsm">Reconnect</button>
+              </div>
+            </div>
+          </div>
+          
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+// ═══════════════════════════════════════════════════════════════
+//  DATA STORE (mutable — simulates backend)
+// ═══════════════════════════════════════════════════════════════
+const CATS = {water:'💧',health:'🏥',education:'📚',infrastructure:'🔨',food:'🌾',sanitation:'🚰',safety:'🛡️',other:'📌'};
+const CAT_C = {water:'#38bdf8',health:'#f87171',education:'#a78bfa',infrastructure:'#fb923c',food:'#facc15',sanitation:'#34d399',safety:'#f472b6',other:'#6b7280'};
+const TIER_COL = {Critical:'#ef4444',High:'#f97316',Medium:'#eab308',Low:'#3b82f6'};
+const TIER_BG  = {Critical:'rgba(239,68,68,.1)',High:'rgba(249,115,22,.1)',Medium:'rgba(234,179,8,.1)',Low:'rgba(59,130,246,.1)'};
+const TIER_CLS = {Critical:'bc',High:'bh',Medium:'bm',Low:'bl'};
+const STAT_CLS = {pending:'bs-pending',assigned:'bs-assigned',in_progress:'bs-in_progress',resolved:'bs-resolved',proposed:'bs-proposed',accepted:'bs-accepted'};
+
+let ISSUES = [
+  {id:'ISS001',title:'Contaminated well water — Block 4',desc:'Residents reporting diarrhoea. Well appears murky and smells foul.',cat:'water',status:'pending',tier:'Critical',score:88.4,affected:120,loc:'Block 4, Hadapsar, Pune',lat:18.5204,lng:73.8567,comp:{sev:5,freq:4.2,urg:2.0,dec:0.91}},
+  {id:'ISS007',title:'Domestic violence — woman needs shelter',desc:'Woman and 2 children need immediate safe shelter and medical attention.',cat:'safety',status:'assigned',tier:'Critical',score:91.0,affected:3,loc:'Dhanori, Pune',lat:18.5450,lng:73.8750,comp:{sev:5,freq:3.5,urg:2.0,dec:0.97}},
+  {id:'ISS002',title:'Child with high fever — no clinic nearby',desc:'8-year-old with 104°F fever. No clinic within 5km of village.',cat:'health',status:'assigned',tier:'Critical',score:82.1,affected:1,loc:'Wagholi, Pune',lat:18.5534,lng:73.9086,comp:{sev:5,freq:2.8,urg:2.0,dec:0.89}},
+  {id:'ISS003',title:'School roof collapsed — 3 classrooms unusable',desc:'Heavy rain caused partial roof collapse. 200 students displaced.',cat:'infrastructure',status:'in_progress',tier:'High',score:74.3,affected:200,loc:'Manjri, Pune',lat:18.4907,lng:73.9213,comp:{sev:4,freq:1.5,urg:1.5,dec:0.85}},
+  {id:'ISS004',title:'Ration supply not received for 3 weeks',desc:'PDS shop closed. 45 families have no food stock.',cat:'food',status:'pending',tier:'High',score:66.8,affected:45,loc:'Kharadi, Pune',lat:18.5498,lng:73.9420,comp:{sev:4,freq:2.0,urg:1.5,dec:0.78}},
+  {id:'ISS005',title:'Open drainage causing road flooding',desc:'Blocked drain flooding homes. 30 households affected.',cat:'sanitation',status:'pending',tier:'Medium',score:55.2,affected:30,loc:'Viman Nagar, Pune',lat:18.5679,lng:73.9143,comp:{sev:3,freq:1.8,urg:1.0,dec:0.92}},
+  {id:'ISS006',title:'Children out of school — no enrolment help',desc:'12 children aged 6–11 not enrolled. Parents unaware of process.',cat:'education',status:'resolved',tier:'Medium',score:42.1,affected:12,loc:'Lohegaon, Pune',lat:18.5976,lng:73.9210,comp:{sev:2,freq:1.2,urg:1.0,dec:0.88}},
+];
+
+let VOLUNTEERS = [
+  {id:'VOL001',name:'Priya Sharma',  skills:['first_aid','water_testing','counseling'],langs:['Hindi','Marathi'],  status:'available',tasks:0,done:23,resp:0.92,rel:0.89,km:12,loc:'Hadapsar, Pune',   lat:18.5104,lng:73.9267,fatigue:0.20},
+  {id:'VOL002',name:'Rahul Meena',   skills:['water_testing','logistics'],              langs:['Hindi'],            status:'busy',     tasks:1,done:14,resp:0.78,rel:0.75,km:15,loc:'Wagholi, Pune',    lat:18.5534,lng:73.9086,fatigue:0.50},
+  {id:'VOL003',name:'Anita Kadam',   skills:['medical','first_aid','education'],        langs:['Marathi','English'],status:'available',tasks:1,done:31,resp:0.88,rel:0.91,km:10,loc:'Manjri, Pune',    lat:18.4907,lng:73.9213,fatigue:0.60},
+  {id:'VOL004',name:'Suresh Patil',  skills:['construction','driving','logistics'],     langs:['Marathi'],          status:'available',tasks:0,done:8, resp:0.65,rel:0.62,km:20,loc:'Kharadi, Pune',   lat:18.5498,lng:73.9420,fatigue:0.10},
+  {id:'VOL005',name:'Meena Raut',    skills:['first_aid','water_testing','translation'],langs:['Hindi','Marathi','English'],status:'available',tasks:0,done:19,resp:0.95,rel:0.93,km:18,loc:'Viman Nagar',lat:18.5679,lng:73.9143,fatigue:0.15},
+  {id:'VOL006',name:'Deepak Thorat', skills:['education','tech','counseling'],          langs:['Marathi','English'],status:'offline',  tasks:2,done:11,resp:0.70,rel:0.68,km:8, loc:'Pune City',       lat:18.5204,lng:73.8567,fatigue:1.80},
+  {id:'VOL007',name:'Kavya Bhosale', skills:['first_aid','counseling'],                langs:['Marathi'],          status:'available',tasks:0,done:6, resp:0.80,rel:0.74,km:10,loc:'Lohegaon, Pune',  lat:18.5976,lng:73.9210,fatigue:0.00},
+  {id:'VOL008',name:'Arun Nagare',   skills:['water_testing','tech','driving'],         langs:['Hindi','Marathi'], status:'busy',     tasks:3,done:17,resp:0.60,rel:0.58,km:12,loc:'Hadapsar, Pune',  lat:18.5104,lng:73.9367,fatigue:2.20},
+];
+
+let ASSIGNMENTS = [
+  {id:'ASG001',iid:'ISS002',vid:'VOL003',status:'accepted',   score:0.867,eta:8, vol:'Anita Kadam',  iss:'Child with high fever',     cat:'health'},
+  {id:'ASG002',iid:'ISS003',vid:'VOL004',status:'in_progress',score:0.720,eta:12,vol:'Suresh Patil', iss:'School roof collapsed',     cat:'infrastructure'},
+  {id:'ASG003',iid:'ISS007',vid:'VOL005',status:'proposed',   score:0.891,eta:6, vol:'Meena Raut',   iss:'Domestic violence case',    cat:'safety'},
+];
+
+let NOTIFS = [
+  {id:'N1',msg:'🔴 Critical: Contaminated well — Block 4',sub:'120 people affected. No volunteer assigned.',time:'2 min ago',read:false,cat:'alert',ico:'🚨',bg:'rgba(239,68,68,.12)'},
+  {id:'N2',msg:'✅ Anita Kadam accepted assignment',sub:'Health case in Wagholi. ETA: 8 min.',time:'5 min ago',read:false,cat:'assignment',ico:'👤',bg:'rgba(34,197,94,.1)'},
+  {id:'N3',msg:'📊 Weekly report ready',sub:'7 issues logged, 1 resolved this week.',time:'1 hr ago',read:false,cat:'report',ico:'📊',bg:'rgba(59,130,246,.1)'},
+  {id:'N4',msg:'⚠️ High priority: Ration supply issue',sub:'45 families affected in Kharadi.',time:'2 hr ago',read:true,cat:'alert',ico:'⚠️',bg:'rgba(249,115,22,.1)'},
+];
+
+let ACTLOG = [
+  {t:'00:08',m:'🔴 New Critical issue submitted: "Contaminated well water"'},
+  {t:'00:06',m:'👤 Meena Raut auto-assigned to ISS007 (match score: 89%)'},
+  {t:'23:58',m:'✅ ISS006 resolved — "Children school enrolment" completed'},
+  {t:'23:45',m:'📲 WhatsApp notification sent to Anita Kadam for ISS002'},
+  {t:'23:30',m:'🤖 Priority scores recalculated for 6 active issues'},
+  {t:'23:00',m:'👤 Suresh Patil started work on ISS003 (in_progress)'},
+];
+
+// ═══ STATE ═══════════════════════════════════════════════════
+let selected = null;
+let tierFlt ='', chartInst={};
+
+// ═══ CLOCK ══════════════════════════════════════════════════
+setInterval(()=>document.getElementById('clock').textContent=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),1000);
+document.getElementById('clock').textContent=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+
+// ═══ STATS BAR ═══════════════════════════════════════════════
+function updateStats(){
+  document.getElementById('st-issues').textContent=ISSUES.length;
+  document.getElementById('st-crit').textContent=ISSUES.filter(i=>i.tier==='Critical'&&i.status!=='resolved').length;
+  document.getElementById('st-vols').textContent=VOLUNTEERS.length;
+  document.getElementById('st-avail').textContent=VOLUNTEERS.filter(v=>v.status==='available').length;
+  document.getElementById('st-asgn').textContent=ASSIGNMENTS.filter(a=>['proposed','accepted','in_progress'].includes(a.status)).length;
+  document.getElementById('st-res').textContent=ISSUES.filter(i=>i.status==='resolved').length;
+  const unread=NOTIFS.filter(n=>!n.read).length;
+  document.getElementById('nb-count').textContent=unread;
+  document.getElementById('nb-count').style.display=unread?'flex':'none';
+}
+updateStats();
+
+// ═══ NAVIGATION ══════════════════════════════════════════════
+function goScreen(s){
+  document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.ni').forEach(x=>x.classList.remove('active'));
+  document.getElementById('sc-'+s).classList.add('active');
+  document.querySelector(`[data-s="${s}"]`)?.classList.add('active');
+  if(s==='cmd')         renderFeed();
+  if(s==='anly')        initAnalytics();
+  if(s==='vol')         renderVols();
+  if(s==='det')         initDetail();
+  if(s==='perf')        initPerformance();
+  if(s==='admin')       initAdmin();
+}
+document.querySelectorAll('.ni').forEach(n=>n.addEventListener('click',()=>goScreen(n.dataset.s)));
+
+// ═══ MODAL ═══════════════════════════════════════════════════
+function openModal(id){document.getElementById(id).classList.add('open')}
+function closeModal(id){document.getElementById(id).classList.remove('open')}
+document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open')}));
+
+function setSetTab(paneId, btnElem) {
+  document.querySelectorAll('.set-pane').forEach(p=>p.style.display='none');
+  document.getElementById(paneId).style.display='block';
+  btnElem.parentElement.querySelectorAll('.ni').forEach(n=>n.classList.remove('active'));
+  btnElem.classList.add('active');
+}
+
+// ═══ ATOMS ═══════════════════════════════════════════════════
+function tb(tier){return`<span class="badge ${TIER_CLS[tier]||'bl'}"><span style="width:5px;height:5px;border-radius:50%;background:${TIER_COL[tier]||'#3b82f6'}"></span>${tier}</span>`}
+function sb(s){return`<span class="badge ${STAT_CLS[s]||'bl'}">${s.replace(/_/g,' ')}</span>`}
+function pbar(v,c='var(--blue)'){return`<div class="pbar"><div class="pf" style="width:${Math.min(v,100)}%;background:${c}"></div></div>`}
+function uid(){return'ID'+(Date.now()%100000)}
+
+// ═══ TOAST ═══════════════════════════════════════════════════
+function toast(msg,ico='✅',col='var(--green)'){
+  const el=document.createElement('div');
+  el.className='toast';
+  el.innerHTML=`<span class="toast-ico">${ico}</span><span style="flex:1">${msg}</span>`;
+  el.style.borderLeftColor=col;
+  document.getElementById('toast-zone').appendChild(el);
+  setTimeout(()=>el.remove(),4000);
+}
+
+// ═══ NOTIFICATIONS ════════════════════════════════════════════
+function toggleNotif(){
+  const p=document.getElementById('notif-panel');
+  p.classList.toggle('open');
+  if(p.classList.contains('open')) renderNotifs();
+}
+function renderNotifs(){
+  const unread=NOTIFS.filter(n=>!n.read).length;
+  document.getElementById('unread-cnt').textContent=unread+' unread';
+  document.getElementById('notif-list').innerHTML=NOTIFS.map(n=>`
+  <div class="notif-item${n.read?'':' unread'}" onclick="readNotif('${n.id}')">
+    ${!n.read?'<span style="width:6px;height:6px;border-radius:50%;background:var(--blue);flex-shrink:0;margin-top:4px"></span>':'<span style="width:6px"></span>'}
+    <div class="notif-ico" style="background:${n.bg}">${n.ico}</div>
+    <div class="notif-txt">
+      <div class="notif-msg">${n.msg}</div>
+      <div class="notif-sub">${n.sub}</div>
+      <div class="notif-time">${n.time}</div>
+    </div>
+  </div>`).join('');
+}
+function readNotif(id){
+  const n=NOTIFS.find(x=>x.id===id); if(n) n.read=true;
+  renderNotifs(); updateStats();
+}
+function markAllRead(){
+  NOTIFS.forEach(n=>n.read=true); renderNotifs(); updateStats();
+  toast('All notifications marked as read','✅','var(--blue)');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  GOOGLE MAP
+// ═══════════════════════════════════════════════════════════════
+let map=null, mapMarkers=[];
+let infoWindow=null;
+
+function initMap(){
+  if(map) return;
+  const pune = { lat: 18.5204, lng: 73.8567 };
+  map = new google.maps.Map(document.getElementById('google-map'), {
+    zoom: 13,
+    center: pune,
+    disableDefaultUI: true,
+    zoomControl: true,
+    styles: [ // Dark mode map styles
+      { elementType: "geometry", stylers: [{ color: "#0d1117" }] },
+      { elementType: "labels.text.stroke", stylers: [{ color: "#0d1117" }] },
+      { elementType: "labels.text.fill", stylers: [{ color: "#7a8aaa" }] },
+      { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#e8edf5" }] },
+      { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#4a5a7a" }] },
+      { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#141a24" }] },
+      { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#4a5a7a" }] },
+      { featureType: "road", elementType: "geometry", stylers: [{ color: "#1e2d47" }] },
+      { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#1e2d47" }] },
+      { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#7a8aaa" }] },
+      { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#222d3f" }] },
+      { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#222d3f" }] },
+      { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#e8edf5" }] },
+      { featureType: "transit", elementType: "geometry", stylers: [{ color: "#141a24" }] },
+      { featureType: "transit.station", elementType: "labels.text.fill", stylers: [{ color: "#e8edf5" }] },
+      { featureType: "water", elementType: "geometry", stylers: [{ color: "#07090f" }] },
+      { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#4a5a7a" }] },
+      { featureType: "water", elementType: "labels.text.stroke", stylers: [{ color: "#07090f" }] }
+    ]
+  });
+  infoWindow = new google.maps.InfoWindow();
+  renderMapMarkers();
+}
+
+function renderMapMarkers(){
+  mapMarkers.forEach(m=>m.setMap(null));
+  mapMarkers=[];
+  if(!map) return;
+
+  // Issue markers
+  ISSUES.filter(i=>i.status!=='resolved').forEach(issue=>{
+    const col=TIER_COL[issue.tier]||'#3b82f6';
+    const isCrit = issue.tier==='Critical';
+    
+    // Create custom HTML element for marker
+    const el = document.createElement('div');
+    el.className = 'custom-marker';
+    el.innerHTML = `
+      <div style="position:relative; width: 30px; height: 30px;">
+        ${isCrit?`<div style="position:absolute;inset:-5px;border-radius:50%;border:2px solid ${col};animation:mapPing 2s ease-out infinite;pointer-events:none;"></div>`:''}
+        <div style="position:absolute;inset:0;border-radius:50%;background:${TIER_BG[issue.tier]||'rgba(59,130,246,.1)'};border:2px solid ${col};display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.5)">
+          ${CATS[issue.cat]||'📌'}
+        </div>
+      </div>
+    `;
+
+    const svgCircle = encodeURIComponent(`
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="-5 -5 40 40" width="40" height="40">
+        ${isCrit ? `<circle cx="15" cy="15" r="18" fill="none" stroke="${col}" stroke-width="1.5" opacity="0.6"/>` : ''}
+        <circle cx="15" cy="15" r="14" fill="${TIER_BG[issue.tier]?TIER_BG[issue.tier].replace('rgba','rgb').replace(',.1)',')'):'#141a24'}" stroke="${col}" stroke-width="2"/>
+        <text x="15" y="20" font-size="14" text-anchor="middle" dominant-baseline="central">${CATS[issue.cat]||'📌'}</text>
+      </svg>
+    `);
+
+    const m = new google.maps.Marker({
+      position: { lat: issue.lat, lng: issue.lng },
+      map: map,
+      title: issue.title,
+      icon: {
+        url: 'data:image/svg+xml;charset=UTF-8,' + svgCircle,
+        scaledSize: new google.maps.Size(40, 40),
+        anchor: new google.maps.Point(20, 20)
+      }
+    });
+
+    m.addListener('click', () => {
+      selectIssue(issue.id);
+      infoWindow.setContent(`
+        <div style="min-width:180px; font-family:'Inter',sans-serif">
+          <div style="font-weight:700;margin-bottom:4px;font-size:12px;color:var(--text)">${issue.title}</div>
+          <div style="font-size:10px;color:#7a8aaa;margin-bottom:6px">📍 ${issue.loc}</div>
+          <div style="display:flex;gap:4px;margin-bottom:4px">${tb(issue.tier)} ${sb(issue.status)}</div>
+          <div style="font-size:11px;color:#e8edf5">👥 ${issue.affected} affected · Score: <strong>${Math.round(issue.score)}</strong></div>
+        </div>
+      `);
+      infoWindow.open(map, m);
+    });
+    mapMarkers.push(m);
+  });
+
+  // Volunteer dots
+  VOLUNTEERS.forEach(v=>{
+    const col=v.status==='available'?'#22c55e':v.status==='busy'?'#f97316':'#4a5a7a';
+    
+    const svgDot = encodeURIComponent(`
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
+        <circle cx="8" cy="8" r="6" fill="${col}" stroke="rgba(255,255,255,0.4)" stroke-width="1.5"/>
+      </svg>
+    `);
+
+    const m = new google.maps.Marker({
+      position: { lat: v.lat, lng: v.lng },
+      map: map,
+      title: `${v.name} (${v.status})`,
+      icon: {
+        url: 'data:image/svg+xml;charset=UTF-8,' + svgDot,
+        scaledSize: new google.maps.Size(16, 16),
+        anchor: new google.maps.Point(8, 8)
+      }
+    });
+    mapMarkers.push(m);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  SCREEN 1 — COMMAND CENTER
+// ═══════════════════════════════════════════════════════════════
+function renderFeed(){
+  const q=(document.getElementById('feed-q')?.value||'').toLowerCase();
+  let list=ISSUES.filter(i=>i.status!=='resolved');
+  if(tierFlt) list=list.filter(i=>i.tier===tierFlt);
+  if(q) list=list.filter(i=>i.title.toLowerCase().includes(q)||i.loc.toLowerCase().includes(q));
+  list.sort((a,b)=>b.score-a.score);
+
+  document.getElementById('crit-badge').textContent=ISSUES.filter(i=>i.tier==='Critical'&&i.status!=='resolved').length+' Critical';
+
+  document.getElementById('feed-list').innerHTML=list.map(iss=>{
+    const bc=TIER_COL[iss.tier]||'#3b82f6';
+    const bg=selected?.id===iss.id?TIER_BG[iss.tier]||'':'';
+    return`<div class="fi" data-id="${iss.id}" onclick="selectIssue('${iss.id}')" style="border-left-color:${bc};background:${bg}">
+      <div class="fi-top"><span class="fi-title">${iss.title}</span><span class="fi-score" style="background:${TIER_BG[iss.tier]};color:${bc}">${Math.round(iss.score)}</span></div>
+      <div class="fi-meta">${CATS[iss.cat]} ${iss.cat}<span style="color:var(--dim)">·</span>👥 ${iss.affected}${sb(iss.status)}</div>
+      <div class="fi-loc">📍 ${iss.loc}</div>
+    </div>`;
+  }).join('');
+
+  const active=ASSIGNMENTS.filter(a=>['proposed','accepted','in_progress'].includes(a.status));
+  document.getElementById('ac-cnt').textContent=active.length;
+  document.getElementById('asgn-list').innerHTML=active.length?
+    active.map(a=>`<div class="acard">
+      <div class="acard-top"><span class="acard-name">${a.vol}</span>${sb(a.status)}</div>
+      <div class="acard-iss">${a.iss}</div>
+      <div class="acard-row"><span>⭐ ${Math.round(a.score*100)}% match</span><span>⏱ ${a.eta}min ETA</span></div>
+      ${pbar(a.score*100)}
+    </div>`).join(''):
+    `<div style="text-align:center;padding:24px;color:var(--dim);font-size:12px">✅ No active assignments</div>`;
+}
+
+function selectIssue(id){
+  selected=ISSUES.find(i=>i.id===id)||null;
+  renderFeed();
+  const strip=document.getElementById('detail-strip');
+  if(selected){
+    strip.style.display='block';
+    document.getElementById('ds-badges').innerHTML=tb(selected.tier)+' '+sb(selected.status);
+    document.getElementById('ds-title').textContent=selected.title;
+    document.getElementById('ds-desc').textContent=selected.desc;
+    if(map) {
+      map.panTo({ lat: selected.lat, lng: selected.lng });
+      map.setZoom(15);
+    }
+  }
+}
+function closeStrip(){selected=null;document.getElementById('detail-strip').style.display='none';renderFeed();}
+function goDetail(){if(selected)goScreen('det');}
+
+document.querySelectorAll('#tier-chips .chip').forEach(c=>{
+  c.addEventListener('click',()=>{
+    document.querySelectorAll('#tier-chips .chip').forEach(x=>x.classList.remove('act'));
+    c.classList.add('act'); tierFlt=c.dataset.t; renderFeed();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════
+//  SCREEN 2 — ANALYTICS
+// ═══════════════════════════════════════════════════════════════
+function initAnalytics(){
+  const cats=Array.from(new Set(ISSUES.map(i=>i.cat)));
+  const catCnt=Object.fromEntries(cats.map(c=>[c,ISSUES.filter(i=>i.cat===c).length]));
+  document.getElementById('anly-mg').innerHTML=[
+    {l:'Total Issues',v:ISSUES.length,       ico:'📋',col:'var(--blue)',  ibg:'rgba(59,130,246,.12)'},
+    {l:'Critical',    v:ISSUES.filter(i=>i.tier==='Critical').length,ico:'🔴',col:'var(--red)',   ibg:'rgba(239,68,68,.12)'},
+    {l:'Avail. Vols', v:VOLUNTEERS.filter(v=>v.status==='available').length,ico:'👥',col:'var(--green)',ibg:'rgba(34,197,94,.12)'},
+    {l:'Avg Response',v:'8.2m',              ico:'⚡',col:'var(--yellow)',ibg:'rgba(234,179,8,.12)'},
+  ].map(m=>`<div class="mc">
+    <div class="mc-top"><span class="txss tm" style="text-transform:uppercase;letter-spacing:.4px">${m.l}</span><div class="mc-ico" style="background:${m.ibg}">${m.ico}</div></div>
+    <div class="mc-val" style="color:${m.col}">${m.v}</div>
+  </div>`).join('');
+
+  // Trend lines
+  const labs=Array.from({length:30},(_,i)=>{const d=new Date();d.setDate(d.getDate()-29+i);return d.toLocaleDateString('en-IN',{day:'numeric',month:'short'});});
+  destroyChart('trendChart');
+  chartInst.trendChart=new Chart(document.getElementById('trendChart'),{type:'line',data:{labels:labs,datasets:
+    ['water','health','infrastructure','food'].map((c,i)=>({
+      label:c,borderColor:Object.values(CAT_C)[i],backgroundColor:'transparent',
+      data:Array.from({length:30},()=>Math.floor(Math.random()*8)+1),
+      tension:.4,pointRadius:0,borderWidth:2
+    }))},options:{responsive:true,plugins:{legend:{labels:{color:'#7a8aaa',font:{size:10}}}},scales:{x:{ticks:{color:'#4a5a7a',maxTicksLimit:8,font:{size:10}},grid:{color:'#1e2d47'}},y:{ticks:{color:'#4a5a7a',font:{size:10}},grid:{color:'#1e2d47'}}}}});
+
+  // Donut
+  const dlabs=Object.keys(catCnt),ddat=Object.values(catCnt),dcols=dlabs.map(k=>CAT_C[k]||'#6b7280');
+  destroyChart('donutChart');
+  chartInst.donutChart=new Chart(document.getElementById('donutChart'),{type:'doughnut',data:{labels:dlabs,datasets:[{data:ddat,backgroundColor:dcols,borderWidth:0,hoverOffset:4}]},options:{responsive:false,cutout:'62%',plugins:{legend:{display:false}}}});
+  document.getElementById('donut-leg').innerHTML=dlabs.map((l,i)=>`<div style="display:flex;align-items:center;gap:5px;font-size:10px;margin-bottom:3px"><span style="width:7px;height:7px;background:${dcols[i]};border-radius:2px;flex-shrink:0"></span><span style="flex:1;color:var(--muted);text-transform:capitalize">${l}</span><span class="fw7">${ddat[i]}</span></div>`).join('');
+
+  // Resolution
+  const wks=Array.from({length:8},(_,i)=>({w:`W${i+1}`,r:Math.floor(Math.random()*15)+5,o:Math.floor(Math.random()*8)+2}));
+  destroyChart('resolChart');
+  chartInst.resolChart=new Chart(document.getElementById('resolChart'),{type:'bar',data:{labels:wks.map(w=>w.w),datasets:[{label:'Resolved',data:wks.map(w=>w.r),backgroundColor:'#22c55e',stack:'a',borderRadius:{topLeft:0,topRight:0}},{label:'Open',data:wks.map(w=>w.o),backgroundColor:'#ef4444',stack:'a',borderRadius:{topLeft:4,topRight:4}}]},options:{responsive:true,plugins:{legend:{labels:{color:'#7a8aaa',font:{size:10}}}},scales:{x:{ticks:{color:'#4a5a7a',font:{size:10}},grid:{color:'#1e2d47'}},y:{ticks:{color:'#4a5a7a',font:{size:10}},grid:{color:'#1e2d47'}}}}});
+
+  // Category trends
+  const tCats=['water','health','infrastructure','food','sanitation','safety'];
+  document.getElementById('trend-list').innerHTML=tCats.map(cat=>{
+    const tw=Math.floor(Math.random()*10)+2,lw=Math.floor(Math.random()*8)+1;
+    const pct=Math.round((tw/Math.max(lw,1)-1)*100);
+    const dir=pct>20?'Rising':pct<-20?'Falling':'Stable';
+    const col=dir==='Rising'?'var(--red)':dir==='Falling'?'var(--green)':'var(--muted)';
+    const arr=dir==='Rising'?'↑':dir==='Falling'?'↓':'→';
+    const spark=Array.from({length:7},()=>Math.floor(Math.random()*6)+1);
+    return`<div class="trow">
+      <span style="font-size:13px;width:19px">${CATS[cat]}</span>
+      <span style="font-size:11px;font-weight:500;flex:1;text-transform:capitalize">${cat}</span>
+      <div class="sparkline">${spark.map(v=>`<div class="sb" style="background:${col};opacity:.7;height:${Math.round(v/6*100)}%"></div>`).join('')}</div>
+      <span style="font-size:10px;font-weight:700;color:${col}">${arr} ${Math.abs(pct)}%</span>
+      <span style="font-size:11px;font-weight:700;color:var(--text);width:18px;text-align:right">${tw}</span>
+    </div>`;
+  }).join('');
+
+  document.getElementById('insight-txt').innerHTML=`This week, <strong style="color:var(--text)">health and water</strong> categories show the highest urgency in Pune (avg priority: 78/100).<br>Reports are <strong style="color:var(--red)">rising — up 34%</strong> vs last week.<br><span style="color:var(--blue-l)">→ Deploy specialised volunteer teams. Coordinate with district health officers immediately.</span>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  SCREEN 3 — VOLUNTEERS
+// ═══════════════════════════════════════════════════════════════
+function renderVols(){
+  const q=(document.getElementById('vol-q')?.value||'').toLowerCase();
+  const sf=document.getElementById('vol-sf')?.value||'';
+  const ss=document.getElementById('vol-ss')?.value||'';
+  let vols=[...VOLUNTEERS];
+  if(q) vols=vols.filter(v=>v.name.toLowerCase().includes(q)||v.loc.toLowerCase().includes(q));
+  if(sf) vols=vols.filter(v=>v.skills.includes(sf));
+  if(ss) vols=vols.filter(v=>v.status===ss);
+  document.getElementById('vc-label').textContent=`${vols.length} of ${VOLUNTEERS.length} volunteers`;
+
+  const sc=s=>s==='available'?'#22c55e':s==='busy'?'#f97316':'#4a5a7a';
+  const scT=s=>s==='available'?'v-avail':s==='busy'?'v-busy':'v-offline';
+
+  // Compute match score for ISS001 as sample
+  const sample=ISSUES[0];
+  const reqSkills={water:['water_testing','logistics'],health:['medical','first_aid'],safety:['counseling','first_aid'],infrastructure:['construction','driving'],education:['education'],food:['logistics'],sanitation:['water_testing']}[sample?.cat]||['first_aid'];
+  function matchScore(v){
+    const j=(a,b)=>{const sa=new Set(a),sb=new Set(b);const i=[...sa].filter(x=>sb.has(x)).length;return i/new Set([...sa,...sb]).size;};
+    const sk=j(reqSkills,v.skills),ds=Math.max(0,1-v.tasks/3),av=v.status==='available'?1:v.status==='busy'?.5:0;
+    return parseFloat((0.35*sk+0.25*Math.random()*0.5+0.20*av+0.10*(1-v.tasks/3)+0.10*v.resp).toFixed(2));
+  }
+
+  document.getElementById('vol-tbody').innerHTML=vols.map(v=>{
+    const ms=matchScore(v);
+    return`<tr onclick="openDrawer('${v.id}')">
+      <td><div style="display:flex;align-items:center;gap:8px"><div class="av" style="width:26px;height:26px;font-size:10px">${v.name[0]}</div><span class="fw6">${v.name}</span></div></td>
+      <td>${v.skills.slice(0,2).map(s=>`<span class="sk">${s}</span>`).join('')}${v.skills.length>2?`<span class="sk">+${v.skills.length-2}</span>`:''}</td>
+      <td class="tm" style="font-size:11px">${v.loc}</td>
+      <td><span class="fw7" style="${v.tasks>=2?'color:var(--orange)':''}">${v.tasks}<span class="td">/3</span></span></td>
+      <td><div style="display:flex;align-items:center;gap:5px"><div class="pbar" style="width:55px"><div class="pf" style="width:${v.resp*100}%;background:var(--green)"></div></div><span class="txs tm">${Math.round(v.resp*100)}%</span></div></td>
+      <td><span class="${scT(v.status)}" style="font-size:10px;font-weight:600;display:flex;align-items:center;gap:3px"><span style="width:5px;height:5px;border-radius:50%;background:${sc(v.status)}"></span>${v.status}</span></td>
+      <td><div style="display:flex;align-items:center;gap:5px"><div class="pbar" style="width:55px"><div class="pf" style="width:${ms*100}%;background:var(--blue)"></div></div><span class="txs" style="color:var(--blue-l)">${Math.round(ms*100)}%</span></div></td>
+      <td class="td">›</td>
+    </tr>`;
+  }).join('');
+}
+
+function openDrawer(id){
+  const v=VOLUNTEERS.find(x=>x.id===id); if(!v) return;
+  document.getElementById('vol-drawer').classList.add('open');
+  const sc=v.status==='available'?'#22c55e':v.status==='busy'?'#f97316':'#4a5a7a';
+  document.getElementById('drawer-body').innerHTML=`
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+    <div class="av" style="width:44px;height:44px;font-size:18px;flex-shrink:0">${v.name[0]}</div>
+    <div><div class="fw7" style="font-size:14px">${v.name}</div><div class="tm txs mt4">📍 ${v.loc}</div></div>
+  </div>
+  ${[['Status',`<span style="color:${sc};font-weight:600">${v.status}</span>`],['Languages',v.langs.join(', ')],['Completed Tasks',v.done],['Distance Willing',v.km+'km'],['Hours/week','~'+Math.round(v.km*0.7)+'h'],['Fatigue Score',v.fatigue.toFixed(2)+'/3.0']].map(([k,val])=>`<div style="display:flex;justify-content:space-between;font-size:12px;padding:6px 0;border-bottom:1px solid var(--border)"><span class="tm">${k}</span><span class="fw6">${val}</span></div>`).join('')}
+  <div style="margin-top:12px"><div class="txs tm" style="margin-bottom:6px">Skills</div><div style="display:flex;flex-wrap:wrap;gap:4px">${v.skills.map(s=>`<span style="font-size:10px;background:rgba(59,130,246,.1);color:var(--blue-l);border:1px solid rgba(59,130,246,.2);border-radius:99px;padding:2px 8px">${s}</span>`).join('')}</div></div>
+  <div style="margin-top:12px"><div class="txs tm" style="margin-bottom:5px">Reliability Score</div><div style="display:flex;align-items:center;gap:8px">${pbar(v.rel*100,'var(--green)')}<span class="fw7" style="font-size:12px;color:var(--green)">${Math.round(v.rel*100)}%</span></div></div>
+  <div style="margin-top:10px"><div class="txs tm" style="margin-bottom:5px">Response Rate</div><div style="display:flex;align-items:center;gap:8px">${pbar(v.resp*100,'var(--blue)')}<span class="fw7" style="font-size:12px;color:var(--blue-l)">${Math.round(v.resp*100)}%</span></div></div>
+  <div style="margin-top:14px;display:flex;gap:6px">
+    <button class="btn bp w100" onclick="openAssignModal(null,'${v.id}')">Assign to Issue</button>
+    <button class="btn bgh" onclick="closeDrawer()" style="flex-shrink:0">✕</button>
+  </div>`;
+}
+function closeDrawer(){document.getElementById('vol-drawer').classList.remove('open')}
+
+// ═══════════════════════════════════════════════════════════════
+//  SCREEN 4 — ISSUE DETAIL
+// ═══════════════════════════════════════════════════════════════
+function initDetail(){
+  const iss=selected||ISSUES[0];
+  const comp=iss.comp;
+  document.getElementById('det-badges').innerHTML=tb(iss.tier)+' '+sb(iss.status);
+  document.getElementById('det-title').textContent=iss.title;
+  document.getElementById('det-loc').textContent='📍 '+iss.loc;
+  document.getElementById('det-desc').textContent=iss.desc;
+  document.getElementById('det-stats').innerHTML=[
+    {l:'Affected',v:iss.affected},{l:'Category',v:iss.cat},{l:'Status',v:iss.status.replace('_',' ')},{l:'Score',v:Math.round(iss.score)+'/100'},
+  ].map(s=>`<div style="text-align:center;padding:10px;background:var(--bg2);border-radius:8px"><div class="fw7" style="font-size:18px">${s.v}</div><div class="txs tm mt4">${s.l}</div></div>`).join('');
+
+  drawGauge(iss.score);
+
+  // Priority factors
+  const factors=[
+    {l:'Severity',v:comp.sev,max:5,raw:`${comp.sev}/5`,col:'#f87171'},
+    {l:'Frequency',v:comp.freq,max:5,raw:`${comp.freq?.toFixed(1)}×`,col:'#fb923c'},
+    {l:'Urgency',v:comp.urg,max:2.0,raw:`${comp.urg?.toFixed(1)}×`,col:'#facc15'},
+    {l:'Recency Decay',v:comp.dec,max:1,raw:`${Math.round(comp.dec*100)}%`,col:'#38bdf8'},
+  ];
+  document.getElementById('det-factors').innerHTML=factors.map(f=>`
+  <div class="frow">
+    <span class="fl">${f.l}</span>
+    <div class="pbar" style="flex:1"><div class="pf" style="width:${Math.min((f.v/f.max)*100,100)}%;background:${f.col}"></div></div>
+    <span class="fv">${f.raw}</span>
+  </div>`).join('')+`
+  <div style="margin-top:8px;padding:8px;background:var(--bg2);border-radius:7px;font-size:10px;color:var(--muted)">
+    Raw = ${comp.sev} × ${comp.freq?.toFixed(1)} × ${comp.urg?.toFixed(1)} × ${comp.dec?.toFixed(2)} = <strong style="color:var(--text)">${(comp.sev*comp.freq*comp.urg*comp.dec).toFixed(2)}</strong> → normalised to <strong style="color:var(--blue-l)">${Math.round(iss.score)}/100</strong>
+  </div>`;
+
+  // Matched volunteers
+  const reqSk={water:['water_testing','logistics'],health:['medical','first_aid'],safety:['counseling','first_aid'],infrastructure:['construction','driving'],education:['education'],food:['logistics'],sanitation:['water_testing']}[iss.cat]||['first_aid'];
+  const matches=VOLUNTEERS.filter(v=>v.status!=='offline'&&v.tasks<3).map(v=>{
+    const j=(a,b)=>{const sa=new Set(a),sb=new Set(b);const i=[...sa].filter(x=>sb.has(x)).length;return i/Math.max(new Set([...sa,...sb]).size,1);};
+    const sk=j(reqSk,v.skills),av=v.status==='available'?1:.5,ws=1-v.tasks/3;
+    const dist=Math.random()*0.4+0.3;
+    const sc=parseFloat((0.35*sk+0.25*dist+0.20*av+0.10*ws+0.10*v.resp).toFixed(3));
+    return{...v,sc,eta:Math.round(5+Math.random()*15)};
+  }).sort((a,b)=>b.sc-a.sc).slice(0,4).map((v,i)=>({...v,rank:i+1}));
+
+  const top=matches[0]?.sc||0;
+  const pol=top>.75?'auto_assign':top>.50?'suggest_admin':'hard_to_staff';
+  const pc=pol==='auto_assign'?['rgba(34,197,94,.2)','#86efac']:pol==='suggest_admin'?['rgba(234,179,8,.2)','#fde047']:['rgba(239,68,68,.2)','#fca5a5'];
+  document.getElementById('match-policy').textContent=pol.replace(/_/g,' ');
+  document.getElementById('match-policy').style.background=pc[0];
+  document.getElementById('match-policy').style.color=pc[1];
+
+  document.getElementById('match-list').innerHTML=matches.map(m=>`
+  <div class="mcard">
+    <div class="mc-top2">
+      <span class="mc-rk">#${m.rank}</span>
+      <span class="mc-nm">${m.name}</span>
+      <span class="mc-sc">${Math.round(m.sc*100)}%</span>
+    </div>
+    <div style="display:flex;gap:3px;flex-wrap:wrap;margin-bottom:5px">${m.skills.slice(0,2).map(s=>`<span style="font-size:9px;background:var(--bg3);color:var(--dim);border-radius:3px;padding:1px 4px">${s}</span>`).join('')}<span style="font-size:9px;background:var(--bg3);color:var(--dim);border-radius:3px;padding:1px 4px">📍 ${m.loc}</span></div>
+    ${pbar(m.sc*100)}
+    <div class="mc-bot">
+      <span>~${m.eta}min ETA</span>
+      <button class="btn bp bsm" style="min-width:60px" onclick="openAssignModal('${iss.id}','${m.id}')">Assign</button>
+    </div>
+  </div>`).join('');
+
+  // Timeline
+  const now=new Date();
+  const ft=o=>{const d=new Date(now-o*60000);return d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})};
+  document.getElementById('det-timeline').innerHTML=[
+    {t:'Issue submitted by field worker',s:ft(62),col:'var(--blue)'},
+    {t:'AI priority score calculated: '+Math.round(iss.score),s:ft(60),col:'var(--purple)'},
+    {t:'Volunteer matching initiated',s:ft(58),col:'var(--yellow)'},
+    ...(iss.status!=='pending'?[{t:'Volunteer assigned and notified via WhatsApp',s:ft(40),col:'var(--orange)'}]:[]),
+    ...(iss.status==='in_progress'?[{t:'Volunteer accepted and en route',s:ft(28),col:'var(--green)'}]:[]),
+  ].map(t=>`<div class="tli"><div class="tli-dot" style="border-color:${t.col}"></div><div class="tli-t">${t.t}</div><div class="tli-s">${t.s}</div></div>`).join('');
+}
+
+function drawGauge(value){
+  const c=document.getElementById('gaugeC'); if(!c) return;
+  const ctx=c.getContext('2d'),W=130,H=78,cx=65,cy=68,R=50;
+  ctx.clearRect(0,0,W,H);
+  const col=value>80?'#ef4444':value>60?'#f97316':value>40?'#eab308':'#3b82f6';
+  ctx.beginPath(); ctx.arc(cx,cy,R,Math.PI,2*Math.PI);
+  ctx.strokeStyle='#1e2d47'; ctx.lineWidth=9; ctx.lineCap='round'; ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx,cy,R,Math.PI,Math.PI+Math.min(value/100,1)*Math.PI);
+  ctx.strokeStyle=col; ctx.lineWidth=9; ctx.lineCap='round'; ctx.stroke();
+  ctx.fillStyle='#e8edf5'; ctx.font='800 20px Inter,sans-serif'; ctx.textAlign='center';
+  ctx.fillText(Math.round(value),cx,cy-2);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  ASSIGN MODAL
+// ═══════════════════════════════════════════════════════════════
+let _assignIid=null, _assignVid=null;
+function openAssignModal(iid, vid){
+  const iss=iid?ISSUES.find(i=>i.id===iid):ISSUES.find(i=>i.status==='pending');
+  const vol=VOLUNTEERS.find(v=>v.id===vid);
+  _assignIid=iss?.id; _assignVid=vol?.id;
+
+  document.getElementById('assign-modal-title').textContent=`Assign: ${iss?.title?.slice(0,30)||'Issue'}`;
+  document.getElementById('assign-modal-content').innerHTML=`
+  <div style="background:var(--bg2);border-radius:9px;padding:10px;margin-bottom:10px;font-size:12px">
+    <div class="fw6" style="margin-bottom:6px">📋 Issue</div>
+    <div style="color:var(--muted)">${iss?.title||'—'}</div>
+    <div style="display:flex;gap:5px;margin-top:5px">${iss?tb(iss.tier):''}${iss?sb(iss.status):''}</div>
+  </div>
+  <div style="background:var(--bg2);border-radius:9px;padding:10px;font-size:12px">
+    <div class="fw6" style="margin-bottom:6px">👤 Volunteer</div>
+    <div class="fw7">${vol?.name||'—'}</div>
+    <div style="color:var(--muted);font-size:11px;margin-top:2px">${vol?.loc||''} · ${vol?.skills?.slice(0,2).join(', ')||''}</div>
+  </div>`;
+
+  document.getElementById('assign-confirm-btn').onclick=confirmAssign;
+  openModal('modal-assign');
+}
+function confirmAssign(){
+  if(!_assignIid||!_assignVid){toast('Select both issue and volunteer','⚠️','var(--orange)');return;}
+  const iss=ISSUES.find(i=>i.id===_assignIid);
+  const vol=VOLUNTEERS.find(v=>v.id===_assignVid);
+  if(ASSIGNMENTS.find(a=>a.iid===_assignIid&&['proposed','accepted','in_progress'].includes(a.status)))
+    {toast('Issue already has an active assignment','⚠️','var(--orange)');closeModal('modal-assign');return;}
+  if(vol.tasks>=3){toast('Volunteer is at capacity (3/3 tasks)','⚠️','var(--orange)');return;}
+
+  const notes=document.getElementById('assign-notes').value;
+  ASSIGNMENTS.push({id:'ASG'+Date.now(),iid:_assignIid,vid:_assignVid,status:'proposed',score:.85,eta:10,vol:vol.name,iss:iss.title,cat:iss.cat});
+  iss.status='assigned'; vol.tasks++;
+  ACTLOG.unshift({t:new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),m:`👤 ${vol.name} assigned to "${iss.title.slice(0,40)}" (manual${notes?' — '+notes.slice(0,30):''})`});
+  NOTIFS.unshift({id:'N'+Date.now(),msg:`✅ ${vol.name} assigned to "${iss.title.slice(0,30)}…"`,sub:`ETA ~10 min. WhatsApp notification sent.`,time:'Just now',read:false,cat:'assignment',ico:'👤',bg:'rgba(34,197,94,.1)'});
+
+  updateStats(); renderFeed(); renderMapMarkers();
+  closeModal('modal-assign');
+  toast(`${vol.name} assigned! WhatsApp notification sent.`,'✅','var(--green)');
+  if(document.getElementById('sc-det').classList.contains('active')) initDetail();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  SAVE ISSUE (Add Issue Form)
+// ═══════════════════════════════════════════════════════════════
+function saveIssue(){
+  const title=document.getElementById('ni-title').value.trim();
+  const cat=document.getElementById('ni-cat').value;
+  const sev=parseInt(document.getElementById('ni-sev').value);
+  const desc=document.getElementById('ni-desc').value.trim();
+  const affected=parseInt(document.getElementById('ni-affected').value)||1;
+  const loc=document.getElementById('ni-loc').value.trim()||'Unknown location';
+  const lat=parseFloat(document.getElementById('ni-lat').value)||18.5204;
+  const lng=parseFloat(document.getElementById('ni-lng').value)||73.8567;
+
+  if(!title){toast('Issue title is required','⚠️','var(--orange)');return;}
+  if(!cat){toast('Select a category','⚠️','var(--orange)');return;}
+
+  // Calculate priority score
+  const urg=affected>10?1.5:1.0;
+  const urgFinal=['health','safety'].includes(cat)?Math.max(urg,2.0):urg;
+  const decay=1.0;
+  const freq=1.0+Math.random();
+  const raw=sev*freq*urgFinal*decay;
+  const score=Math.min(Math.round((raw/50)*100),100);
+  const tier=score>=80?'Critical':score>=60?'High':score>=40?'Medium':'Low';
+
+  const newIss={id:'ISS'+uid(),title,desc,cat,status:'pending',tier,score,affected,loc,lat,lng,comp:{sev,freq:parseFloat(freq.toFixed(1)),urg:urgFinal,dec:decay}};
+  ISSUES.unshift(newIss);
+  ACTLOG.unshift({t:new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),m:`📌 New ${tier} issue submitted: "${title.slice(0,40)}"`});
+  NOTIFS.unshift({id:'N'+Date.now(),msg:`📌 New issue: "${title.slice(0,30)}…"`,sub:`${tier} priority · ${cat} · ${affected} affected.`,time:'Just now',read:false,cat:'alert',ico:tier==='Critical'?'🚨':'⚠️',bg:TIER_BG[tier]});
+
+  // Reset form
+  ['ni-title','ni-desc','ni-loc','ni-affected'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('ni-cat').value='';
+  document.getElementById('ni-sev').value=3;
+  document.getElementById('ni-sev-val').textContent='3';
+
+  closeModal('modal-add-issue');
+  updateStats(); renderFeed();
+  if(map) renderMapMarkers();
+  toast(`Issue submitted! AI Score: ${score} (${tier})`,'🚀','var(--blue)');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  SAVE VOLUNTEER (Add Volunteer Form)
+// ═══════════════════════════════════════════════════════════════
+let _selectedSkills=[];
+function toggleSkill(btn){
+  btn.classList.toggle('act');
+  const sk=btn.dataset.sk;
+  if(btn.classList.contains('act')) _selectedSkills.push(sk);
+  else _selectedSkills=_selectedSkills.filter(s=>s!==sk);
+}
+function saveVolunteer(){
+  const name=document.getElementById('nv-name').value.trim();
+  const phone=document.getElementById('nv-phone').value.trim();
+  const loc=document.getElementById('nv-loc').value.trim()||'Pune';
+  const km=parseInt(document.getElementById('nv-km').value)||10;
+  const lat=parseFloat(document.getElementById('nv-lat').value)||18.5204;
+  const lng=parseFloat(document.getElementById('nv-lng').value)||73.8567;
+  const langs=(document.getElementById('nv-lang').value||'Hindi').split(',').map(s=>s.trim());
+
+  if(!name){toast('Name is required','⚠️','var(--orange)');return;}
+  if(!phone){toast('Phone is required','⚠️','var(--orange)');return;}
+  if(!_selectedSkills.length){toast('Select at least one skill','⚠️','var(--orange)');return;}
+
+  const newVol={id:'VOL'+uid(),name,skills:[..._selectedSkills],langs,status:'available',tasks:0,done:0,resp:0.5,rel:0.5,km,loc,lat,lng,fatigue:0};
+  VOLUNTEERS.push(newVol);
+  ACTLOG.unshift({t:new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),m:`👤 New volunteer registered: ${name} (${_selectedSkills[0]})`});
+
+  // Reset form
+  ['nv-name','nv-phone','nv-loc'].forEach(i=>document.getElementById(i).value='');
+  document.querySelectorAll('#skill-picks .chip').forEach(c=>c.classList.remove('act'));
+  _selectedSkills=[];
+
+  closeModal('modal-add-vol');
+  updateStats(); renderVols();
+  if(map) renderMapMarkers();
+  toast(`${name} registered as volunteer!`,'👤','var(--purple)');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  SCREEN 5 — PERFORMANCE
+// ═══════════════════════════════════════════════════════════════
+function initPerformance(){
+  const res=ISSUES.filter(i=>i.status==='resolved').length;
+  document.getElementById('perf-kpis').innerHTML=[
+    {l:'Issues Resolved', v:res, ico:'✅',col:'var(--green)',bg:'rgba(34,197,94,.12)'},
+    {l:'Acceptance Rate', v:'78%',ico:'📥',col:'var(--blue)',  bg:'rgba(59,130,246,.12)'},
+    {l:'Avg Response',    v:'8.2m',ico:'⏱️',col:'var(--yellow)',bg:'rgba(234,179,8,.12)'},
+    {l:'Active Vols',     v:VOLUNTEERS.filter(v=>v.status==='available').length+'/'+VOLUNTEERS.length,ico:'👥',col:'var(--purple)',bg:'rgba(168,85,247,.12)'},
+  ].map(m=>`<div class="mc"><div class="mc-top"><span class="txss tm">${m.l}</span><div class="mc-ico" style="background:${m.bg}">${m.ico}</div></div><div class="mc-val" style="color:${m.col}">${m.v}</div></div>`).join('');
+
+  const wks=Array.from({length:8},(_,i)=>({w:`W${i+1}`,r:Math.floor(Math.random()*15)+4,o:Math.floor(Math.random()*8)+2}));
+  destroyChart('pResolC');
+  chartInst.pResolC=new Chart(document.getElementById('pResolC'),{type:'bar',data:{labels:wks.map(w=>w.w),datasets:[{label:'Resolved',data:wks.map(w=>w.r),backgroundColor:'#22c55e',stack:'a',borderRadius:{topLeft:0,topRight:0}},{label:'Open',data:wks.map(w=>w.o),backgroundColor:'#ef4444',stack:'a',borderRadius:{topLeft:4,topRight:4}}]},options:{responsive:true,plugins:{legend:{labels:{color:'#7a8aaa',font:{size:10}}}},scales:{x:{ticks:{color:'#4a5a7a',font:{size:10}},grid:{color:'#1e2d47'}},y:{ticks:{color:'#4a5a7a',font:{size:10}},grid:{color:'#1e2d47'}}}}});
+
+  const rd=[{w:'W1',v:12},{w:'W2',v:9},{w:'W3',v:11},{w:'W4',v:7},{w:'W5',v:8},{w:'W6',v:6},{w:'W7',v:7},{w:'W8',v:8.2}];
+  destroyChart('pRespC');
+  chartInst.pRespC=new Chart(document.getElementById('pRespC'),{type:'line',data:{labels:rd.map(r=>r.w),datasets:[{label:'Avg min',data:rd.map(r=>r.v),borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,.1)',fill:true,tension:.4,borderWidth:2,pointRadius:3,pointBackgroundColor:'#3b82f6'}]},options:{responsive:true,plugins:{legend:{labels:{color:'#7a8aaa',font:{size:10}}}},scales:{x:{ticks:{color:'#4a5a7a',font:{size:10}},grid:{color:'#1e2d47'}},y:{ticks:{color:'#4a5a7a',font:{size:10}},grid:{color:'#1e2d47'}}}}});
+
+  const ud=[{d:'Mon',v:72},{d:'Tue',v:85},{d:'Wed',v:68},{d:'Thu',v:91},{d:'Fri',v:78},{d:'Sat',v:55},{d:'Sun',v:40}];
+  destroyChart('pUtilC');
+  chartInst.pUtilC=new Chart(document.getElementById('pUtilC'),{type:'bar',data:{labels:ud.map(r=>r.d),datasets:[{label:'Utilization %',data:ud.map(r=>r.v),backgroundColor:'#8b5cf6',borderRadius:4}]},options:{responsive:true,plugins:{legend:{labels:{color:'#7a8aaa',font:{size:10}}}},scales:{x:{ticks:{color:'#4a5a7a',font:{size:10}},grid:{color:'#1e2d47'}},y:{max:100,ticks:{color:'#4a5a7a',font:{size:10},callback:v=>v+'%'},grid:{color:'#1e2d47'}}}}});
+
+  const top=[...VOLUNTEERS].sort((a,b)=>b.done-a.done).slice(0,5);
+  const mx=top[0]?.done||1;
+  document.getElementById('top-vols').innerHTML=top.map((v,i)=>`
+  <div class="tr-row">
+    <div class="rk ${['', 'r1 r1','r2 r2','r3 r3','r-rest r-rest','r-rest r-rest'][i+1]||''}" style="${i===0?'background:#eab308;color:#000':i===1?'background:#9ca3af;color:#000':i===2?'background:#b45309;color:#fff':'background:var(--bg3);color:var(--muted)'}">${i+1}</div>
+    <div style="flex:1;min-width:0"><div class="ts fw6">${v.name}</div>${pbar(v.done/mx*100,i===0?'var(--yellow)':'var(--blue)')}</div>
+    <div style="text-align:right"><div class="fw7">${v.done}</div><div class="txss td">tasks</div></div>
+  </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  SCREEN 6 — ADMIN
+// ═══════════════════════════════════════════════════════════════
+function initAdmin(){
+  document.getElementById('adm-ti').textContent=ISSUES.length;
+  document.getElementById('adm-av').textContent=VOLUNTEERS.filter(v=>v.status==='available').length+' of '+VOLUNTEERS.length;
+
+  document.getElementById('admin-issue-tbl').innerHTML=ISSUES.map(i=>`
+  <tr>
+    <td class="td txs">${i.id}</td>
+    <td style="max-width:200px"><span class="tr" style="font-size:11px">${i.title}</span></td>
+    <td style="font-size:10px">${CATS[i.cat]} ${i.cat}</td>
+    <td>${tb(i.tier)}</td>
+    <td>${sb(i.status)}</td>
+    <td class="txs">${i.affected}</td>
+    <td>
+      <div style="display:flex;gap:4px">
+        ${i.status!=='resolved'?`<button class="btn bgh bsm" onclick="markResolved('${i.id}')">✓ Resolve</button>`:'<span class="txs td">Resolved</span>'}
+      </div>
+    </td>
+  </tr>`).join('');
+
+  document.getElementById('activity-log').innerHTML=ACTLOG.map(l=>`
+  <div class="log-item"><span class="log-time">${l.t}</span><span class="log-msg">${l.m}</span></div>`).join('');
+}
+function markResolved(id){
+  const i=ISSUES.find(x=>x.id===id); if(!i) return;
+  i.status='resolved'; i.score=0;
+  ACTLOG.unshift({t:new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),m:`✅ Issue "${i.title.slice(0,40)}" marked as resolved`});
+  updateStats(); initAdmin(); renderFeed(); renderMapMarkers();
+  toast('Issue marked as resolved','✅','var(--green)');
+}
+function saveAdminSettings(){
+  const name=document.getElementById('cfg-name').value;
+  const thresh=document.getElementById('cfg-thresh').value;
+  ACTLOG.unshift({t:new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),m:`⚙️ Admin settings saved — org: "${name}", alert threshold: ${thresh}`});
+  initAdmin();
+  toast('Settings saved successfully','💾','var(--blue)');
+}
+function exportData(){
+  const blob=new Blob([JSON.stringify({issues:ISSUES,volunteers:VOLUNTEERS,assignments:ASSIGNMENTS},null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='smartalloc-export.json'; a.click();
+  toast('Data exported as JSON','📤','var(--purple)');
+}
+
+function processAllPayments(){
+  toast('Processing payments via Gateway...','🔄','var(--blue)');
+  setTimeout(()=>{
+    toast('₹4,250 successfully transferred to 3 volunteers!','💸','var(--green)');
+    ACTLOG.unshift({t:new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}),m:`💸 Paid ₹4,250 to volunteers including performance bonuses`});
+    closeModal('modal-payments');
+    initAdmin();
+  }, 1500);
+}
+
+function destroyChart(id){if(chartInst[id]){chartInst[id].destroy();delete chartInst[id];}}
+
+// ═══════════════════════════════════════════════════════════════
+//  SMART MATCHING ENGINE (runs live on every assign)
+// ═══════════════════════════════════════════════════════════════
+function smartMatch(issue, volunteerList){
+  const reqSk={water:['water_testing','logistics'],health:['medical','first_aid'],safety:['counseling','first_aid'],infrastructure:['construction','driving'],education:['education'],food:['logistics'],sanitation:['water_testing']}[issue.cat]||['first_aid'];
+  return volunteerList
+    .filter(v=>v.status!=='offline'&&v.tasks<3&&v.fatigue<2.0)
+    .map(v=>{
+      const j=(a,b)=>{const sa=new Set(a),sb=new Set(b);const i=[...sa].filter(x=>sb.has(x)).length;return i/Math.max(new Set([...sa,...sb]).size,1);};
+      const sk=j(reqSk,v.skills);
+      const av=v.status==='available'?1.0:v.status==='busy'?0.5:0;
+      const ws=1-v.tasks/3;
+      const dm=Math.random()*0.4+0.1; // simulated distance metric
+      const sc=parseFloat((0.35*sk+0.25*dm+0.20*av+0.10*ws+0.10*v.resp).toFixed(3));
+      return{...v,sc,eta:Math.round(5+Math.random()*15)};
+    })
+    .sort((a,b)=>b.sc-a.sc);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════════
+renderFeed();
+// Note: initMap is called by the Google Maps callback automatically
+renderVols();
+renderNotifs();
+
+// Realtime counter animation
+let tick=0;
+setInterval(()=>{
+  tick++;
+  document.getElementById('realtime-counter').textContent=`🔄 Updated ${tick}s ago`;
+  // Drift scores slightly for live effect
+  if(tick%15===0){
+    ISSUES.forEach(i=>{if(i.status!=='resolved')i.score=Math.max(0,Math.min(100,i.score+(Math.random()-.5)*2));});
+    renderFeed();
+    updateStats();
+  }
+},1000);
+</script>
+</body>
+</html>
