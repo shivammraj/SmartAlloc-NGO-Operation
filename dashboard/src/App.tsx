@@ -290,7 +290,7 @@ function CommandCenter() {
               <div className="absolute top-4 left-4 bg-[#0f1117]/80 backdrop-blur rounded-lg px-3 py-2 border border-[#232b3e] flex items-center gap-2">
                 <MapPin size={13} className="text-blue-400" />
                 <span className="text-xs text-gray-300">Pune, Maharashtra — Live View</span>
-                <WifiOff size={11} className="text-yellow-400 ml-1" title="Simulated — no API key needed" />
+                <span title="Simulated — no API key needed"><WifiOff size={11} className="text-yellow-400 ml-1" /></span>
               </div>
 
               {/* Issue pins */}
@@ -503,7 +503,7 @@ function Analytics() {
               <div key={d.name} className="flex items-center gap-2 text-xs">
                 <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
                 <span className="text-gray-400 capitalize flex-1">{d.name}</span>
-                <span className="text-white font-medium">{d.value}</span>
+                <span className="text-white font-medium">{String(d.value)}</span>
               </div>
             ))}
           </div>
